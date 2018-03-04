@@ -28,9 +28,24 @@ Small issue; 'ground' isn't picked up as a past-tense verb, but as a noun; addin
 Updating 'to taste' to be a measurement worked out OK
 
 https://www.allrecipes.com/recipe/12804/seared-scallops-with-spicy-papaya-sauce/
-Labeled as a 'gourmet'/complex recipe, so maybe something will happen? (':
+Labeled as a 'gourmet'/complex recipe, so maybe something weird will happen? (':
 Nope. It was getting confused about verb past participles but that was fixed fairly fast
+
+Tool parser testing;
+
+https://www.allrecipes.com/recipe/12804/seared-scallops-with-spicy-papaya-sauce/
+Used this one initially; works OK. Came up with a pretty decent list of initial ban words, and the method seems to be OK?
+
+https://www.allrecipes.com/recipe/11901/to-die-for-fettuccini-alfredo/
+This one's annoying; the person spelled fettucine two different ways, so the method can't match the two.
+Should probably add some sort of method for accounting for typos.
 """
+
+'''
+TO DO LIST:
+    ---Fettucine example is telling; need to account for typos somehow
+    ---Maybe write a simple inference function for tools? E.g. 'stir' ---> 'stirring spoon', 'drain' ---> 'strainer', etc.
+'''
 
 from bs4 import BeautifulSoup
 import urllib.request
@@ -38,7 +53,7 @@ from nltk import pos_tag, word_tokenize
 
 #   For now, the URL has to be manually changed here
 #   Ideally by the end we'll have some walkthrough / user input interface which will be nicer
-set_url = "https://www.allrecipes.com/recipe/12804/seared-scallops-with-spicy-papaya-sauce/"
+set_url = "https://www.allrecipes.com/recipe/11901/to-die-for-fettuccini-alfredo/"
 
 def fetch_page(link):
     with urllib.request.urlopen(link) as url:
@@ -70,36 +85,23 @@ def deparenthesize(tokenized_phrase):   # stuff in parentheses most often seems 
     parenthesized = [tokenized_phrase[i] for i in range(0, len(tokenized_phrase)) if i in parenthesized_indices]
     return [deparenthesized, parenthesized]
 
-def parse_ingredient(description):
+def parts_fix(tuples):
     #  Keeping a running list of types of measurements; seems like a reasonable way to resolve it
     measurements = ['cup', 'dash', 'can', 'pack', 'pint', 'teaspoon', 'tablespoon', 'pound', 'ounce', 'pinch', 
                     'clove', 'stalk', 'slices']
 
     #  Corrections for the NLTK part-of-speech tagger; can just update this while testing on various recipes
     JJ_corrections = ['small', 'medium', 'large']
+    VB_corrections = ['combine', 'coat', 'cook', 'stir', 'drain', 'toss']
     VBD_corrections = ['ground']
     
     #  was thinking of puting some stuff like 'extra' / 'to taste' as numbers, but what about like... 'extra-virgin olive oil'
     #  something to consider, I guess
     CD_corrections = []     
     
-    #  maybe to change, idk; seems like the only place we'd need it
-    NN_corrections = ['with']
-    
-    
-    ing_data = {'name': [], 'quantity': [], 'measurement': [], 'descriptor': [], 'preparation': []}
-    tokens = word_tokenize(description)
-    
-    
-    #  Stuff in parentheses gets auto-chosen as a descriptor
-    text = deparenthesize(tokens)[0]
-    ing_data['descriptor'] = deparenthesize(tokens)[1]
-    parts_tuples = pos_tag(text)
-
-
     #  Some necessary preprocessing because the NLTK part-of-speech tagger is kinda meh sometimes; also to get measurement words
     parts = []
-    for t in parts_tuples:
+    for t in tuples:
         is_measurement = False
         for m in measurements:
             if m in t[0]:
@@ -115,11 +117,22 @@ def parse_ingredient(description):
             parts.append([t[0], 'VBD'])
         elif t[0] in CD_corrections:
             parts.append([t[0], 'CD'])
+        elif t[0] in VB_corrections:
+            parts.append([t[0], 'VB'])
         else:
             parts.append(list(t))
-            
-            
-    #print(description) 
+    
+    return parts
+    
+def parse_ingredient(description):
+    ing_data = {'name': [], 'quantity': [], 'measurement': [], 'descriptor': [], 'preparation': []}
+    tokens = word_tokenize(description)
+    
+    #  Stuff in parentheses gets auto-chosen as a descriptor
+    text = deparenthesize(tokens)[0]
+    ing_data['descriptor'] = deparenthesize(tokens)[1]
+    parts_tuples = pos_tag(text)
+    parts = parts_fix(parts_tuples)
     
     # Classify relevant words based on their part of speech / assigned tag
     i = 0
@@ -132,6 +145,8 @@ def parse_ingredient(description):
         # Rest of it is handled as usual, according to modified part-of-speech tags
         if parts[i][1] == 'CD':
             ing_data['quantity'].append(parts[i][0])
+        elif parts[i][0] == 'with':     # special case
+            ing_data['name'].append(parts[i][0])
         elif parts[i][1] == 'MEASUREMENT':
             ing_data['measurement'].append(parts[i][0])
         elif parts[i][1] == 'RB':
@@ -149,14 +164,50 @@ def parse_ingredient(description):
         i = i + 1
     return ing_data
 
+def parse_tools(instruction, ingredients):  
+    #  this actually seemed to improve the identification?? not sure why but will leave it for now
+    lowercase = instruction.lower()
+    
+    # banned words; method is almost perfect, but some common words slip through, so just get rid of them here
+    banned_words = ['heat', 'sauce']
+    
+    #  create tokens and assign parts-of-word
+    tokens = word_tokenize(lowercase)
+    parts_tuples = pos_tag(tokens)
+    parts = parts_fix(parts_tuples)
+    
+    # remove all non-noun words
+    parts = [x for x in parts if x[1] == 'NN' and x[0] not in banned_words]
+    for ingredient in ingredients:
+        parts = [x for x in parts if x[0] != ingredient]
+    if len(parts) < 1:
+        return
+    else:
+        return parts[0][0]
+
+def full_ingredients_list(ingredients):
+    all_ingredients = []
+    for ingredient in ingredients:
+        all_ingredients = all_ingredients + ingredient['name']
+        all_ingredients = all_ingredients + ingredient['measurement']
+    return all_ingredients
+    
+
+
 if __name__ == '__main__':
     all_strings = fetch_page(set_url)
     ing_strings = all_strings[0]
     dir_strings = all_strings[1]
+    ingredients = []
     for ing_string in ing_strings:
-        print(parse_ingredient(ing_string))
-
- 
+        ingredients.append(parse_ingredient(ing_string))
+    print(ingredients)
+    all_ingredients = full_ingredients_list(ingredients)
+    tools = []
+    for dir_string in dir_strings:
+        print(dir_string)
+        tools.append(parse_tools(dir_string, all_ingredients))
+    print(tools)
     
     
     
