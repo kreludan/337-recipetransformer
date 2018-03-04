@@ -38,14 +38,11 @@ Used this one initially; works OK. Came up with a pretty decent list of initial 
 
 https://www.allrecipes.com/recipe/11901/to-die-for-fettuccini-alfredo/
 This one's annoying; the person spelled fettucine two different ways, so the method can't match the two.
-Should probably add some sort of method for accounting for typos.
-"""
+Added a method for accounting for typos. Maybe should write a simple inference function that adds intuitive tools necessary?
 
-'''
-TO DO LIST:
-    ---Fettucine example is telling; need to account for typos somehow
-    ---Maybe write a simple inference function for tools? E.g. 'stir' ---> 'stirring spoon', 'drain' ---> 'strainer', etc.
-'''
+https://www.allrecipes.com/recipe/11116/cream-cheese-sugar-cookies/
+
+"""
 
 from bs4 import BeautifulSoup
 import urllib.request
@@ -53,7 +50,7 @@ from nltk import pos_tag, word_tokenize
 
 #   For now, the URL has to be manually changed here
 #   Ideally by the end we'll have some walkthrough / user input interface which will be nicer
-set_url = "https://www.allrecipes.com/recipe/11901/to-die-for-fettuccini-alfredo/"
+set_url = "https://www.allrecipes.com/recipe/11116/cream-cheese-sugar-cookies/"
 
 def fetch_page(link):
     with urllib.request.urlopen(link) as url:
@@ -61,16 +58,17 @@ def fetch_page(link):
         soup = BeautifulSoup(s, "lxml")
         
         # Fetch ingredients
-        
         ing_spans = soup.findAll("span", {"class": "recipe-ingred_txt added"})
         ing_strings = [span.text for span in ing_spans]
     
         # Fetch directions
-        
         dir_spans = soup.findAll("span", {"class": "recipe-directions__list--item"})
         dir_strings = [span.text for span in dir_spans]
         
-        return [ing_strings, dir_strings]
+        # Fetch title
+        title = soup.find("title").text
+        
+        return [ing_strings, dir_strings, title]
 
 def deparenthesize(tokenized_phrase):   # stuff in parentheses most often seems like descriptors, so just doing that beforehand
     parenthesized_indices = []
@@ -88,13 +86,15 @@ def deparenthesize(tokenized_phrase):   # stuff in parentheses most often seems 
 def parts_fix(tuples):
     #  Keeping a running list of types of measurements; seems like a reasonable way to resolve it
     measurements = ['cup', 'dash', 'can', 'pack', 'pint', 'teaspoon', 'tablespoon', 'pound', 'ounce', 'pinch', 
-                    'clove', 'stalk', 'slices']
+                    'clove', 'stalk', 'slices', 'inch']
+    time_units = ['second', 'minute', 'hour']
 
     #  Corrections for the NLTK part-of-speech tagger; can just update this while testing on various recipes
-    JJ_corrections = ['small', 'medium', 'large']
-    VB_corrections = ['combine', 'coat', 'cook', 'stir', 'drain', 'toss']
+    JJ_corrections = ['small', 'medium', 'large', 'brown']
+    VB_corrections = ['combine', 'coat', 'cook', 'stir', 'drain', 'toss', 'serve', 'place', 'heat', 'brush', 'beat', 'bake',
+                      'mix', 'cut']
     VBD_corrections = ['ground']
-    
+    NN_corrections = []
     #  was thinking of puting some stuff like 'extra' / 'to taste' as numbers, but what about like... 'extra-virgin olive oil'
     #  something to consider, I guess
     CD_corrections = []     
@@ -107,8 +107,15 @@ def parts_fix(tuples):
             if m in t[0]:
                 is_measurement = True
                 break
+        is_timeunit = False
+        for u in time_units:
+            if u in t[0]:
+                is_timeunit = True
+                break     
         if is_measurement == True:
             parts.append([t[0], 'MEASUREMENT'])
+        elif is_timeunit == True:
+            parts.append([t[0], 'TIME'])
         elif t[0] in NN_corrections:
             parts.append([t[0], 'NN'])
         elif t[0] in JJ_corrections:
@@ -119,6 +126,8 @@ def parts_fix(tuples):
             parts.append([t[0], 'CD'])
         elif t[0] in VB_corrections:
             parts.append([t[0], 'VB'])
+        elif t[0][-3:] == "ing":    #   check for missing gerunds
+            parts.append([t[0], 'VBG'])
         else:
             parts.append(list(t))
     
@@ -164,12 +173,13 @@ def parse_ingredient(description):
         i = i + 1
     return ing_data
 
-def parse_tools(instruction, ingredients):  
+def parse_tools(instruction, ingredients, title):  
     #  this actually seemed to improve the identification?? not sure why but will leave it for now
     lowercase = instruction.lower()
     
     # banned words; method is almost perfect, but some common words slip through, so just get rid of them here
-    banned_words = ['heat', 'sauce']
+    banned_words = ['heat', 'sauce', 'degree', 'shape', 'place', 'time', 'sprinkle', 'back', 'amount', 'direction',
+                    'dough']
     
     #  create tokens and assign parts-of-word
     tokens = word_tokenize(lowercase)
@@ -177,13 +187,21 @@ def parse_tools(instruction, ingredients):
     parts = parts_fix(parts_tuples)
     
     # remove all non-noun words
-    parts = [x for x in parts if x[1] == 'NN' and x[0] not in banned_words]
+    parts = [x for x in parts if (x[1] == 'NN' or x[1] == 'NNS') and x[0][-4:] != "ness"]
+    title_words = word_tokenize(title)
+    for title_word in title_words:
+        parts = [x for x in parts if title_word not in x[0] and not misspelling(x[0], title_word)]
+    for banned_word in banned_words:
+        parts = [x for x in parts if banned_word not in x[0]]
     for ingredient in ingredients:
-        parts = [x for x in parts if x[0] != ingredient]
+        parts = [x for x in parts if x[0] != ingredient and not misspelling(x[0], ingredient)] 
     if len(parts) < 1:
         return
     else:
-        return parts[0][0]
+        found_tools = []
+        for i in range(0, len(parts)):
+            found_tools.append(parts[i][0])
+        return found_tools
 
 def full_ingredients_list(ingredients):
     all_ingredients = []
@@ -191,13 +209,19 @@ def full_ingredients_list(ingredients):
         all_ingredients = all_ingredients + ingredient['name']
         all_ingredients = all_ingredients + ingredient['measurement']
     return all_ingredients
-    
 
+def misspelling(string1, string2):  # allowing 2-letter difference, for leniency
+    mistakes = abs(len(string1) - len(string2))
+    for i in range(0, min(len(string1), len(string2))):
+        if string1[i] != string2[i]:
+            mistakes = mistakes + 1
+    return mistakes <= 2
 
 if __name__ == '__main__':
     all_strings = fetch_page(set_url)
     ing_strings = all_strings[0]
     dir_strings = all_strings[1]
+    title = all_strings[2]
     ingredients = []
     for ing_string in ing_strings:
         ingredients.append(parse_ingredient(ing_string))
@@ -206,7 +230,10 @@ if __name__ == '__main__':
     tools = []
     for dir_string in dir_strings:
         print(dir_string)
-        tools.append(parse_tools(dir_string, all_ingredients))
+        parsed_tools = parse_tools(dir_string, all_ingredients, title)
+        if parsed_tools != None:
+            tools = tools + [x for x in parsed_tools if x != None]
+            tools = list(set(tools))
     print(tools)
     
     
