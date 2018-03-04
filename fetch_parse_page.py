@@ -8,6 +8,8 @@ https://www.allrecipes.com/recipe/100506/irish-potato-farls/
 
 Edge cases to be accounted for in the ingredient parser:
 '1/4 cup all-purpose flour, plus extra for dusting'; the clause beginning with 'plus' doesn't do so hot
+The word 'cup' is interpreted by NLTK's tagger as an adjective?? 
+I'm just gonna... manually fix that as well as any other edge cases that show up
 """
 
 import time
@@ -21,6 +23,13 @@ import sys
 URLs used for testing:
 '''   
 
+#  Corrections for the NLTK part-of-speech tagger; can just update this while testing on various recipes
+NN_corrections = ['cup']
+JJ_corrections = ['small', 'medium', 'large']
+
+# was thinking of puting some stuff like 'extra' in here, but what about like... 'extra-virgin olive oil'
+# something to consider, I guess
+CD_corrections = []     
 
 def fetch_page(link):
     with urllib.request.urlopen(link) as url:
@@ -40,36 +49,49 @@ def fetch_page(link):
         return [ing_strings, dir_strings]
 
 def parse_ingredient(description):
-    ing_data = [[],[],[],[],[]]     # name, quantity, measurement, descriptor, preparation
+    ing_data = {'name': [], 'quantity': [], 'measurement': [], 'descriptor': [], 'preparation': []}
     text = word_tokenize(description)
-    parts = pos_tag(text)
+    parts_tuples = pos_tag(text)
+    parts = []
+    # Some necessary preprocessing because the NLTK part-of-speech tagger is kinda meh sometimes
+    for t in parts_tuples:
+        if t[0] in NN_corrections:
+            parts.append([t[0], 'NN'])
+        elif t[0] in JJ_corrections:
+            parts.append([t[0], 'JJ'])
+        elif t[0] in CD_corrections:
+            parts.append([t[0], 'CD'])
+        else:
+            parts.append(list(t))
+    print(description) # temporary: to delete
     i = 0
-    print(description)
     while(i < len(parts)):
-        print(parts[i][0])
         if parts[i][1] == 'CD':
-            ing_data[1].append(parts[i][0])
-            if (parts[i+1][1] == 'NN' or parts[i+1][1] == 'NNS') and parts[i+2][1] != ',':
-                print('hit')
-                ing_data[2].append(parts[i+1][0])
-                i = i+1
-            elif parts[i+1][1] == 'JJ' and (parts[i+2][1] == 'NN' or parts[i+2][1] == 'NNS') and parts[i+3][1] != None and parts[i+3][1] != ',':
-                ing_data[3].append(parts[i+1][0])
-                ing_data[2].append(parts[i+2][0])
-                i = i+2
+            ing_data['quantity'].append(parts[i][0])
+            if len(parts[i:]) > 1:
+                if (parts[i+1][1] == 'NN' or parts[i+1][1] == 'NNS'):
+                    if len(parts[i:]) <= 2 or parts[i+2][1] != ',':
+                        ing_data['measurement'].append(parts[i+1][0])
+                        i = i+1
+                elif len(parts[i:]) > 2:
+                    if parts[i+1][1] == 'JJ' and (parts[i+2][1] == 'NN' or parts[i+2][1] == 'NNS'):
+                        if len(parts[i:]) <= 3 or parts[i+3][1] != ',':
+                            ing_data['descriptor'].append(parts[i+1][0])
+                            ing_data['measurement'].append(parts[i+2][0])
+                            i = i + 2
         elif parts[i][1] == 'RB':
             if parts[i+1][1] == 'VBD':
-                ing_data[4].append(parts[i][0])
+                ing_data['preparation'].append(parts[i][0])
         elif parts[i][1] == 'VBD':
-            ing_data[4].append(parts[i][0])
+            ing_data['preparation'].append(parts[i][0])
         elif parts[i][1] == 'JJ':
-            ing_data[3].append(parts[i][0])
-            if (parts[i][0] == 'low' or parts[i][0] == 'high') and (parts[i+1][1] == 'NN' or parts[i+1][1] == 'RB'):
-                ing_data[3].append(parts[i+1][0])
-                i = i+1
+            ing_data['descriptor'].append(parts[i][0])
+            if len(parts[i:]) > 1 and (parts[i][0] == 'low' or parts[i][0] == 'high') and (parts[i+1][1] == 'NN' or parts[i+1][1] == 'RB'):
+                ing_data['descriptor'].append(parts[i+1][0])
+                i = i + 1
         elif parts[i][1] == 'NN' or parts[i][1] == 'NNS' or parts[i][1] == 'NNP':
-            ing_data[0].append(parts[i][0])
-        i = i+1
+            ing_data['name'].append(parts[i][0])
+        i = i + 1
     print(ing_data)
 
 if __name__ == '__main__':
