@@ -48,7 +48,7 @@ from nltk import pos_tag, word_tokenize
 
 #   For now, the URL has to be manually changed here
 #   Ideally by the end we'll have some walkthrough / user input interface which will be nicer
-set_url = "https://www.allrecipes.com/recipe/11901/to-die-for-fettuccini-alfredo/"
+set_url = "https://www.allrecipes.com/recipe/242314/browned-butter-banana-bread/"
 
 def fetch_page(link):
     with urllib.request.urlopen(link) as url:
@@ -201,6 +201,21 @@ def full_ingredients_list(ingredients):
         all_ingredients = all_ingredients + ingredient['measurement']
     return all_ingredients
 
+
+def infer_tools(tokens):
+	#dictionary of inferred tools to tool
+	inferred_tools = {'stirring spoon': ['mix', 'stir'], 'strainer': ['drain', 'strain'], 'knife': ['cut', 'chop', 'dice', 'mince'],
+					  'refrigerator': ['chill', 'refrigerate'], 'sifter': ['sift']}
+
+
+	result_tools = []
+	for token in tokens:
+		for key in inferred_tools.keys():
+			if token in inferred_tools[key]:
+				result_tools.append(key)
+
+	return result_tools
+
   
 def parse_tools(instruction):
     #  banning some words that slip through the cracks
@@ -210,8 +225,9 @@ def parse_tools(instruction):
     tool_words = ['pan', 'skillet', 'pot', 'sheet', 'grate', 'whisk', 'spoon', 'cutter', 'board', 'oven', 'bowl', 'bag',
                   'towel', 'pin', 'knife', 'masher', 'skewer', 'refrigerator', 'freezer', 'grill']
     
+    lowercase = instruction.lower()
     #  since we're just searching for words, we shouldn't need part-of-word information, just tokens
-    tokens = word_tokenize(instruction)
+    tokens = word_tokenize(lowercase)
     
     #  keep all words with tool words in them (including subsets; e.g. 'saucepan')
     potential_tools = []
@@ -220,7 +236,7 @@ def parse_tools(instruction):
             if tool_word in token:
                 potential_tools.append(token)
                 break
-    found_tools = []
+    found_tools = infer_tools(tokens)
     for potential_tool in potential_tools:
         is_tool = True
         for banned_word in banned_words:
@@ -269,7 +285,6 @@ if __name__ == '__main__':
         methods = methods + parse_methods(dir_string, all_ingredients)
     methods = list(set(methods))  #  remove duplicates again
     print(methods)
-    
     
     
     
