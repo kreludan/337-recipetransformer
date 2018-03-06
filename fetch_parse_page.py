@@ -48,8 +48,8 @@ from nltk import pos_tag, word_tokenize
 
 #   For now, the URL has to be manually changed here
 #   Ideally by the end we'll have some walkthrough / user input interface which will be nicer
-set_url = "https://www.allrecipes.com/recipe/242314/browned-butter-banana-bread/"
-
+# set_url = "https://www.allrecipes.com/recipe/242314/browned-butter-banana-bread/"
+set_url = "https://www.allrecipes.com/recipe/234534/beef-and-guinness-stew/?internalSource=hub%20recipe&referringContentType=search%20results&clickId=cardslot%202"
 def fetch_page(link):
     with urllib.request.urlopen(link) as url:
         s = url.read()
@@ -250,17 +250,36 @@ def parse_tools(instruction):
 def parse_methods(instruction, ingredients):
     # keeping a list of banned words
     banned_words = ['be', 'is', 'set']
-    
+    list_of_methods = ['roast','stewing','stew','boil','grill']
     lowercase = instruction.lower()
     tokens = word_tokenize(lowercase)
     parts_tuples = pos_tag(tokens)
     parts = parts_fix(parts_tuples)
     found_methods = []
+    print(parts)
     for part in parts:
         if 'VB' == part[1] and part[0] not in ingredients and part[0] not in banned_words:
             found_methods.append(part[0])
+        # This part was added because I found some of the method are recognized as NN ——YW
+        if 'NN' == part[1] and part[0] in list_of_methods:
+            found_methods.append(part[0])
+
     return found_methods
-        
+
+def infer_methods(method_word,tools):   
+    # combin the method_word with tools
+    combined_list = method_word+tools
+    #These rules need to be updated to incorperate more cases 
+    rules = {('cook','skillet','oil'):'fry',('grill'):'grill',('pot','water'):'boil',
+    ('drain','pot'):'boil'}
+    for key_words in rules.keys():
+        common_words = [word for word in combined_list if word in key_words]
+        #match the rule, append the val from the dict
+        if len(common_words) == len(key_words):
+            method_word.append(rules[key_words])
+
+    return method_word
+
 if __name__ == '__main__':
     all_strings = fetch_page(set_url)
     ing_strings = all_strings[0]
@@ -285,7 +304,12 @@ if __name__ == '__main__':
         methods = methods + parse_methods(dir_string, all_ingredients)
     methods = list(set(methods))  #  remove duplicates again
     print(methods)
-    
+
+    #infer methods from methods and tools and append to the methods
+    methods = infer_methods(methods,tools)
+    methods = list(set(methods))  #  remove duplicates again
+    print(methods)
+
     
     
     
