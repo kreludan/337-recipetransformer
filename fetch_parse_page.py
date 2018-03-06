@@ -48,7 +48,7 @@ from nltk import pos_tag, word_tokenize
 
 #   For now, the URL has to be manually changed here
 #   Ideally by the end we'll have some walkthrough / user input interface which will be nicer
-set_url = "https://www.allrecipes.com/recipe/19485/honey-grilled-shrimp/"
+set_url = "https://www.allrecipes.com/recipe/11901/to-die-for-fettuccini-alfredo/"
 
 def fetch_page(link):
     with urllib.request.urlopen(link) as url:
@@ -90,8 +90,9 @@ def parts_fix(tuples):
     #  Corrections for the NLTK part-of-speech tagger; can just update this while testing on various recipes
     JJ_corrections = ['small', 'medium', 'large']
     VBD_corrections = ['ground']
-    VB_corrections = []
-    NN_corrections = []
+    VB_corrections = ['combine', 'coat', 'cook', 'stir', 'drain', 'toss', 'serve', 'place', 'brush', 'beat', 'bake',
+                      'mix', 'cut', 'baste', 'grill', 'thread']
+    NN_corrections = ['garlic']  #  really not sure why this one's an issue...
     #  was thinking of puting some stuff like 'extra' / 'to taste' as numbers, but what about like... 'extra-virgin olive oil'
     #  something to consider, I guess
     CD_corrections = []     
@@ -170,6 +171,37 @@ def parse_ingredient(description):
         i = i + 1
     return ing_data
 
+def misspelling(string1, string2):  # allowing 2-letter difference, for leniency
+    mistakes = abs(len(string1) - len(string2))
+    for i in range(0, min(len(string1), len(string2))):
+        if string1[i] != string2[i]:
+            mistakes = mistakes + 1
+    return mistakes <= 2
+
+def remove_plurals(tools):      # if we have 'spoon' and 'spoons', keep 'spoon' only
+    for i in range(0, len(tools)):
+        for j in range(i, len(tools)):
+            if tools[i] == tools[j] + 's':
+                tools[i] = tools[j]
+            elif tools[j] == tools[i] + 's':
+                tools[j] = tools[i]
+    
+def remove_tool_as_verb(tools):      # if we have 'grill' and 'grilling', keep 'grill' only
+    for i in range(0, len(tools)):
+        for j in range(i, len(tools)):
+            if tools[i] == tools[j] + 'ing':
+                tools[i] = tools[j]
+            elif tools[j] == tools[i] + 'ing':
+                tools[j] = tools[i]
+
+def full_ingredients_list(ingredients):
+    all_ingredients = []
+    for ingredient in ingredients:
+        all_ingredients = all_ingredients + ingredient['name']
+        all_ingredients = all_ingredients + ingredient['measurement']
+    return all_ingredients
+
+  
 def parse_tools(instruction):
     #  banning some words that slip through the cracks
     banned_words = ['potato']
@@ -199,37 +231,20 @@ def parse_tools(instruction):
             found_tools.append(potential_tool)
     return found_tools
 
-
-def full_ingredients_list(ingredients):
-    all_ingredients = []
-    for ingredient in ingredients:
-        all_ingredients = all_ingredients + ingredient['name']
-        all_ingredients = all_ingredients + ingredient['measurement']
-    return all_ingredients
-
-def misspelling(string1, string2):  # allowing 2-letter difference, for leniency
-    mistakes = abs(len(string1) - len(string2))
-    for i in range(0, min(len(string1), len(string2))):
-        if string1[i] != string2[i]:
-            mistakes = mistakes + 1
-    return mistakes <= 2
-
-def remove_plurals(tools):      # if we have 'spoon' and 'spoons', keep 'spoon' only
-    for i in range(0, len(tools)):
-        for j in range(i, len(tools)):
-            if tools[i] == tools[j] + 's':
-                tools[i] = tools[j]
-            elif tools[j] == tools[i] + 's':
-                tools[j] = tools[i]
+def parse_methods(instruction, ingredients):
+    # keeping a list of banned words
+    banned_words = ['be', 'is', 'set']
     
-def remove_tool_as_verb(tools):      # if we have 'grill' and 'grilling', keep 'grill' only
-    for i in range(0, len(tools)):
-        for j in range(i, len(tools)):
-            if tools[i] == tools[j] + 'ing':
-                tools[i] = tools[j]
-            elif tools[j] == tools[i] + 'ing':
-                tools[j] = tools[i]
-    
+    lowercase = instruction.lower()
+    tokens = word_tokenize(lowercase)
+    parts_tuples = pos_tag(tokens)
+    parts = parts_fix(parts_tuples)
+    found_methods = []
+    for part in parts:
+        if 'VB' == part[1] and part[0] not in ingredients and part[0] not in banned_words:
+            found_methods.append(part[0])
+    return found_methods
+        
 if __name__ == '__main__':
     all_strings = fetch_page(set_url)
     ing_strings = all_strings[0]
@@ -242,12 +257,18 @@ if __name__ == '__main__':
     all_ingredients = full_ingredients_list(ingredients)
     tools = []
     for dir_string in dir_strings:
-        print(dir_string)
+        #print(dir_string)
         tools = tools + parse_tools(dir_string)
     remove_plurals(tools)
     remove_tool_as_verb(tools)
     tools = list(set(tools))    # remove duplicates
     print(tools)
+    methods = []
+    for dir_string in dir_strings:
+        print(dir_string)
+        methods = methods + parse_methods(dir_string, all_ingredients)
+    methods = list(set(methods))  #  remove duplicates again
+    print(methods)
     
     
     
