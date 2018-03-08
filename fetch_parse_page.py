@@ -91,7 +91,7 @@ def parts_fix(tuples):
     JJ_corrections = ['small', 'medium', 'large']
     VBD_corrections = ['ground']
     VB_corrections = ['combine', 'coat', 'cook', 'stir', 'drain', 'toss', 'serve', 'place', 'brush', 'beat', 'bake',
-                      'mix', 'cut', 'baste', 'grill', 'thread']
+                      'mix', 'cut', 'baste', 'grill', 'thread', 'roast','stewing','stew','boil','grill', 'arrange']
     NN_corrections = ['garlic']  #  really not sure why this one's an issue...
     #  was thinking of puting some stuff like 'extra' / 'to taste' as numbers, but what about like... 'extra-virgin olive oil'
     #  something to consider, I guess
@@ -176,7 +176,7 @@ def misspelling(string1, string2):  # allowing 2-letter difference, for leniency
     for i in range(0, min(len(string1), len(string2))):
         if string1[i] != string2[i]:
             mistakes = mistakes + 1
-    return mistakes <= 2
+    return mistakes <= 1
 
 def remove_plurals(tools):      # if we have 'spoon' and 'spoons', keep 'spoon' only
     for i in range(0, len(tools)):
@@ -198,11 +198,14 @@ def full_ingredients_list(ingredients):
     all_ingredients = []
     for ingredient in ingredients:
         all_ingredients = all_ingredients + ingredient['name']
-        all_ingredients = all_ingredients + ingredient['measurement']
     return all_ingredients
 
+def infer_tools(instruction):
+    lowercase = instruction.lower()
+    tokens = word_tokenize(lowercase)
+    return infer_tools_helper(tokens)
 
-def infer_tools(tokens):
+def infer_tools_helper(tokens):
 	#dictionary of inferred tools to tool
 	inferred_tools = {'stirring spoon': ['mix', 'stir'], 'strainer': ['drain', 'strain'], 'knife': ['cut', 'chop', 'dice', 'mince'],
 					  'refrigerator': ['chill', 'refrigerate'], 'sifter': ['sift']}
@@ -219,16 +222,16 @@ def infer_tools(tokens):
   
 def parse_tools(instruction):
     #  banning some words that slip through the cracks
-    banned_words = ['potato']
+    banned_words = ['potato', 'pinch', 'scraping']
     
     #  doing this the old way seemed to not be so great; so I think I'll just keep a running list of tool words instead
     tool_words = ['pan', 'skillet', 'pot', 'sheet', 'grate', 'whisk', 'spoon', 'cutter', 'board', 'oven', 'bowl', 'bag',
-                  'towel', 'pin', 'knife', 'masher', 'skewer', 'refrigerator', 'freezer', 'grill']
+                  'towel', 'pin', 'knife', 'masher', 'skewer', 'refrigerator', 'freezer', 'grill', 'ladle', 'pour', 'simmer']
     
     lowercase = instruction.lower()
     #  since we're just searching for words, we shouldn't need part-of-word information, just tokens
     tokens = word_tokenize(lowercase)
-    
+
     #  keep all words with tool words in them (including subsets; e.g. 'saucepan')
     potential_tools = []
     for token in tokens:
@@ -236,7 +239,7 @@ def parse_tools(instruction):
             if tool_word in token:
                 potential_tools.append(token)
                 break
-    found_tools = infer_tools(tokens)
+    found_tools = []
     for potential_tool in potential_tools:
         is_tool = True
         for banned_word in banned_words:
@@ -250,25 +253,22 @@ def parse_tools(instruction):
 def parse_methods(instruction, ingredients):
     # keeping a list of banned words
     banned_words = ['be', 'is', 'set']
-    list_of_methods = ['roast','stewing','stew','boil','grill']
     lowercase = instruction.lower()
     tokens = word_tokenize(lowercase)
     parts_tuples = pos_tag(tokens)
     parts = parts_fix(parts_tuples)
     found_methods = []
-    print(parts)
+    #print(parts)
     for part in parts:
         if 'VB' == part[1] and part[0] not in ingredients and part[0] not in banned_words:
-            found_methods.append(part[0])
-        # This part was added because I found some of the method are recognized as NN ——YW
-        if 'NN' == part[1] and part[0] in list_of_methods:
             found_methods.append(part[0])
 
     return found_methods
 
 def infer_methods(method_word,tools):   
-    # combin the method_word with tools
+    #print(tool_names)
     combined_list = method_word+tools
+    inferred_methods = []
     #These rules need to be updated to incorperate more cases 
     rules = {('cook','skillet','oil'):'fry',('grill'):'grill',('pot','water'):'boil',
     ('drain','pot'):'boil'}
@@ -276,46 +276,92 @@ def infer_methods(method_word,tools):
         common_words = [word for word in combined_list if word in key_words]
         #match the rule, append the val from the dict
         if len(common_words) == len(key_words):
-            method_word.append(rules[key_words])
+            inferred_methods.append(rules[key_words])
 
-    return method_word
+    return inferred_methods
+
+def find_ingredients_objects(ing_strings):
+    ingredients = []
+    for ing_string in ing_strings:
+        ingredients.append(parse_ingredient(ing_string))
+    return ingredients
+
+def full_tools_list(dir_strings):
+    all_tools = {'parsed_tools': [], 'inferred_tools': []}
+    parsed_tools = []
+    inferred_tools = []
+    for dir_string in dir_strings:
+        parsed_tools = parsed_tools + parse_tools(dir_string)
+        inferred_tools = inferred_tools + infer_tools(dir_string)
+    remove_plurals(parsed_tools)
+    remove_tool_as_verb(parsed_tools)
+    remove_plurals(inferred_tools)
+    remove_tool_as_verb(inferred_tools)
+    all_tools['parsed_tools'] = list(set(parsed_tools))
+    all_tools['inferred_tools'] = list(set(inferred_tools))
+    return all_tools
+
+def full_methods_list(dir_strings, all_ingredients):
+    all_methods = {'parsed_methods': [], 'inferred_methods': []}
+    parsed_methods = []
+    for dir_string in dir_strings:
+        parsed_methods = parsed_methods + parse_methods(dir_string, all_ingredients)
+    all_methods['parsed_methods'] = list(set(parsed_methods))
+    all_tools = full_tools_list(dir_strings)
+    all_methods['inferred_methods'] = list(set(infer_methods(all_methods['parsed_methods'], all_tools['parsed_tools'] + all_tools['inferred_tools'])))
+    return all_methods
+
+def assemble_instruction_objects(dir_strings, all_ingredients):
+    instruction_objects = []
+    tools_list = []
+    methods_list = []
+    inferred_methods  = []
+    for dir_string in dir_strings:
+        instruction_object = {'ingredients': [], 'parsed_tools': [], 'inferred_tools': [], 'parsed_methods': [], 'inferred_methods': []}
+        instruction_object['ingredients'] = list(set(find_instruction_ingredients(dir_string, all_ingredients)))
+        instruction_object['parsed_tools'] = list(set(parse_tools(dir_string)))
+        instruction_object['inferred_tools'] = list(set(infer_tools(dir_string)))
+        tools_list = tools_list + instruction_object['parsed_tools'] + instruction_object['inferred_tools']
+        instruction_object['parsed_methods'] = list(set(parse_methods(dir_string, all_ingredients)))
+        methods_list = methods_list + instruction_object['parsed_methods']
+        potentially_inferred = list(set(infer_methods(methods_list, tools_list)))
+        instruction_object['inferred_methods'] = [method for method in potentially_inferred if method not in inferred_methods]
+        inferred_methods = inferred_methods + instruction_object['inferred_methods']
+        instruction_objects.append(instruction_object)
+    return instruction_objects
+
+def find_instruction_ingredients(instruction, all_ingredients):
+    ingredients_list = []
+    tokens = word_tokenize(instruction)
+    for ingredient in all_ingredients:
+        for token in tokens:
+            if token == ingredient or misspelling(token, ingredient):
+                ingredients_list.append(token)
+                break
+    return list(set(ingredients_list))
 
 if __name__ == '__main__':
     all_strings = fetch_page(set_url)
     ing_strings = all_strings[0]
     dir_strings = all_strings[1]
     title = all_strings[2]
-    ingredients = []
-    for ing_string in ing_strings:
-        ingredients.append(parse_ingredient(ing_string))
-    print(ingredients)
-    all_ingredients = full_ingredients_list(ingredients)
-    tools = []
-    for dir_string in dir_strings:
-        #print(dir_string)
-        tools = tools + parse_tools(dir_string)
-    remove_plurals(tools)
-    remove_tool_as_verb(tools)
-    tools = list(set(tools))    # remove duplicates
-    print(tools)
-    methods = []
-    for dir_string in dir_strings:
-        print(dir_string)
-        methods = methods + parse_methods(dir_string, all_ingredients)
-    methods = list(set(methods))  #  remove duplicates again
-    print(methods)
-
-    #infer methods from methods and tools and append to the methods
-    methods = infer_methods(methods,tools)
-    methods = list(set(methods))  #  remove duplicates again
-    print(methods)
-
-    
-    
-    
-    
-    
-    
+    print("Recipe title: " + title)
+    print("Finding ingredients objects:")    
+    ingredients_objects = find_ingredients_objects(ing_strings)
+    print(ingredients_objects)
+    all_ingredients = full_ingredients_list(ingredients_objects)
+    print("Finding all tools list:")
+    all_tools = full_tools_list(dir_strings)
+    print(all_tools)
+    print("Finding all methods list:")
+    all_methods = full_methods_list(dir_strings, all_ingredients)
+    print(all_methods)
+    print("Creating instruction object for each instruction:")
+    all_instructions = assemble_instruction_objects(dir_strings, all_ingredients)
+    for i in range(0, len(dir_strings)):
+        print(dir_strings[i])
+        print(all_instructions[i])
+    print(all_ingredients)
     
     
     
