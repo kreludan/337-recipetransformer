@@ -354,32 +354,61 @@ def find_instruction_ingredients(instruction, all_ingredients):
                 break
     return list(set(ingredients_list))
 
-def non_vege_to_vege(all_instructions,all_ingredients):
-    all_meat = ['beef','fish','goat','lamb','meatball','pork','poultry','sausage','seafood','bacon','ham','chicken','egg']
+def non_vege_to_vege(ingredient_objects, instruction_objects):
+    #    ingredients_objects = find_ingredients_objects(ing_strings)
+    #   all_ingredients = full_ingredients_list(ingredients_objects)
+
+    meats = ['bear', 'beef', 'heart', 'liver', 'tongue', 'buffalo', 'bison', 'calf', 'caribou', \
+            'steak', 'poultry'\
+            'goat', 'ham', 'horse', 'kangaroo', 'lamb', 'moose', 'mutton', 'pork', 'bacon', 'rabbit',\
+            'snake', 'squirrel', 'tripe', 'turtle', 'veal', 'venison', 'chicken', 'hen', 'duck', 'emu',\
+            'gizzard', 'goose', 'ostrich', 'partridge', 'pheasant', 'quail', 'turkey', 'baloney', 'sausage', 'sausages']
+
+    fish = ['fish', 'salmon', 'trout', 'bass', 'catfish', 'shrimp', 'cod', 'pollock', 'tilapia', 'clam', 'clams'\
+            'crab', 'oyster', 'oysters', 'flounder', 'lobster', 'yellowtail', 'sturgeon', 'octopus', 'squid'\
+            'mackerel', 'anchovy', 'anchovies', 'scallop', 'scallops', 'tuna', 'eel', 'crawfish', 'crayfish']
+
+    fats = ['fat', 'lard']
+
+    banned = ['chuck', 'boneless', 'bone']
+
     vege = 'tofu'
     transformed_instruction = []
-    all_instructions_copy = copy.deepcopy(all_instructions)
+    instruction_object_copy = copy.deepcopy(instruction_objects)
     #loop over all intructions
-    for instruction in all_instructions_copy:
+    for instruction in instruction_object_copy:
         vege_ingre = []
         c_ingredients = instruction['ingredients']
         if c_ingredients:
             for c_ingre in c_ingredients:
-                if c_ingre in all_meat:
+                if (c_ingre in meats) or (c_ingre in fish):
                     vege_ingre.append(vege)
                 else:   
                     vege_ingre.append(c_ingre)
         instruction['ingredients'] = vege_ingre
         transformed_instruction.append(instruction)
     #transfer the ingredients list
-    transformed_ingredients = []
-    for c_ingre in all_ingredients:
-        if c_ingre in all_meat:
-            transformed_ingredients.append(vege)
-        else:   
-            transformed_ingredients.append(c_ingre)
-    transformed_ingredients = list(set(transformed_ingredients))      
-    return transformed_instruction,transformed_ingredients
+    for c_ingre in ingredient_objects:
+        n = c_ingre['name']
+        desc = c_ingre['descriptor']
+        for i,string in enumerate(n, 0):
+            if string.lower() in meats or string.lower() in fish:
+                # replace with relevant vegetable, for now tofu
+                c_ingre['name'][i] = 'tofu'
+            elif string.lower() in fats:
+                # replace with a vegetarian oil/fat
+                c_ingre['name'][i] = 'butter'
+            elif string.lower() in banned:
+                c_ingre['name'].pop(i)
+
+        for i,string in enumerate(desc, 0):
+            if string.lower() in meats or string.lower() in fish:
+                # change descriptor, so basically just make it vegetable
+                c_ingre['descriptor'][i] = 'vegetable'
+            elif string.lower() in banned:
+                c_ingre['descriptor'].pop(i)
+
+    return transformed_instruction,ingredient_objects
 
 
 def non_heal_to_heal(all_instructions,all_methods):
@@ -405,14 +434,17 @@ if __name__ == '__main__':
     print(all_methods)
     print("Creating instruction object for each instruction:")
     all_instructions = assemble_instruction_objects(dir_strings, all_ingredients)
-    transformed_instructions,transformed_ingredients = non_vege_to_vege(all_instructions,all_ingredients)
-
+    transformed_instructions,transformed_ingredients = non_vege_to_vege(ingredients_objects,all_instructions)
     for i in range(0, len(dir_strings)):
         print(dir_strings[i])
         print(all_instructions[i])
         print(transformed_instructions[i])
+
     print(all_ingredients)
+
+    all_transformed_ingredients = full_ingredients_list(transformed_ingredients)
     print(transformed_ingredients)
+    print(all_transformed_ingredients)
 
 
     
