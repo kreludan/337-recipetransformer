@@ -46,6 +46,7 @@ from bs4 import BeautifulSoup
 import urllib.request
 from nltk import pos_tag, word_tokenize
 import copy
+from nltk.stem.porter import *
 #   For now, the URL has to be manually changed here
 #   Ideally by the end we'll have some walkthrough / user input interface which will be nicer
 # set_url = "https://www.allrecipes.com/recipe/242314/browned-butter-banana-bread/"
@@ -188,7 +189,7 @@ def remove_plurals(tools):      # if we have 'spoon' and 'spoons', keep 'spoon' 
                 tools[i] = tools[j]
             elif tools[j] == tools[i] + 's':
                 tools[j] = tools[i]
-    
+
 def remove_tool_as_verb(tools):      # if we have 'grill' and 'grilling', keep 'grill' only
     for i in range(0, len(tools)):
         for j in range(i, len(tools)):
@@ -197,10 +198,17 @@ def remove_tool_as_verb(tools):      # if we have 'grill' and 'grilling', keep '
             elif tools[j] == tools[i] + 'ing':
                 tools[j] = tools[i]
 
+# def standrize(input_list):
+#     stemmer = PorterStemmer()
+#     singles = [stemmer.stem(item) for item in input_list]
+#     return singles
+
 def full_ingredients_list(ingredients):
     all_ingredients = []
     for ingredient in ingredients:
+
         all_ingredients = all_ingredients + ingredient['name']
+    # all_ingredients = standrize(all_ingredients)
     return all_ingredients
 
 def infer_tools(instruction):
@@ -209,18 +217,18 @@ def infer_tools(instruction):
     return infer_tools_helper(tokens)
 
 def infer_tools_helper(tokens):
-	#dictionary of inferred tools to tool
-	inferred_tools = {'stirring spoon': ['mix', 'stir'], 'strainer': ['drain', 'strain'], 'knife': ['cut', 'chop', 'dice', 'mince'],
-					  'refrigerator': ['chill', 'refrigerate'], 'sifter': ['sift']}
+    #dictionary of inferred tools to tool
+    inferred_tools = {'stirring spoon': ['mix', 'stir'], 'strainer': ['drain', 'strain'], 'knife': ['cut', 'chop', 'dice', 'mince'],
+                      'refrigerator': ['chill', 'refrigerate'], 'sifter': ['sift']}
 
 
-	result_tools = []
-	for token in tokens:
-		for key in inferred_tools.keys():
-			if token in inferred_tools[key]:
-				result_tools.append(key)
+    result_tools = []
+    for token in tokens:
+        for key in inferred_tools.keys():
+            if token in inferred_tools[key]:
+                result_tools.append(key)
 
-	return result_tools
+    return result_tools
 
   
 def parse_tools(instruction):
@@ -255,15 +263,18 @@ def parse_tools(instruction):
 
 def parse_methods(instruction, ingredients):
     # keeping a list of banned words
-    banned_words = ['drain','be', 'is', 'set','cover', 'arrange', 'transfer', 'place','remove','discard', 'turn', 'reduce','combine','raise']
+    banned_words = ['be', 'is', 'set']
+    list_of_methods = ['roast','stewing','stew','boil','grill','fry']
     lowercase = instruction.lower()
     tokens = word_tokenize(lowercase)
     parts_tuples = pos_tag(tokens)
     parts = parts_fix(parts_tuples)
     found_methods = []
-    #print(parts)
     for part in parts:
         if 'VB' == part[1] and part[0] not in ingredients and part[0] not in banned_words:
+            found_methods.append(part[0])
+        # This part was added because I found some of the method are recognized as NN ——YW
+        if 'NN' == part[1] and part[0] in list_of_methods:
             found_methods.append(part[0])
 
     return found_methods
@@ -344,7 +355,7 @@ def find_instruction_ingredients(instruction, all_ingredients):
     return list(set(ingredients_list))
 
 def non_vege_to_vege(all_instructions,all_ingredients):
-    all_meat = ['beef','fish','goat','lamb','meatball','pork','poultry','sausage','seafood','bacon','ham']
+    all_meat = ['beef','fish','goat','lamb','meatball','pork','poultry','sausage','seafood','bacon','ham','chicken','egg']
     vege = 'tofu'
     transformed_instruction = []
     all_instructions_copy = copy.deepcopy(all_instructions)
@@ -402,6 +413,7 @@ if __name__ == '__main__':
         print(transformed_instructions[i])
     print(all_ingredients)
     print(transformed_ingredients)
+
 
     
     
