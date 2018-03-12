@@ -45,11 +45,14 @@ Tool parser testing; initially for the tool parser tried an approach that made u
 from bs4 import BeautifulSoup
 import urllib.request
 from nltk import pos_tag, word_tokenize
-
+import copy
 #   For now, the URL has to be manually changed here
 #   Ideally by the end we'll have some walkthrough / user input interface which will be nicer
 # set_url = "https://www.allrecipes.com/recipe/242314/browned-butter-banana-bread/"
-set_url = "https://www.allrecipes.com/recipe/234534/beef-and-guinness-stew/?internalSource=hub%20recipe&referringContentType=search%20results&clickId=cardslot%202"
+# set_url = "https://www.allrecipes.com/recipe/234534/beef-and-guinness-stew/?internalSource=hub%20recipe&referringContentType=search%20results&clickId=cardslot%202"
+# set_url = 'https://www.allrecipes.com/recipe/220128/chef-johns-buttermilk-fried-chicken/?internalSource=staff%20pick&referringId=650&referringContentType=recipe%20hub'
+# set_url ='https://www.allrecipes.com/recipe/16669/fried-chicken-tenders/?internalSource=staff%20pick&referringId=650&referringContentType=recipe%20hub'
+set_url = 'https://www.allrecipes.com/recipe/8970/millie-pasquinellis-fried-chicken/?internalSource=hub%20recipe&referringId=650&referringContentType=recipe%20hub'
 def fetch_page(link):
     with urllib.request.urlopen(link) as url:
         s = url.read()
@@ -252,7 +255,7 @@ def parse_tools(instruction):
 
 def parse_methods(instruction, ingredients):
     # keeping a list of banned words
-    banned_words = ['be', 'is', 'set']
+    banned_words = ['drain','be', 'is', 'set','cover', 'arrange', 'transfer', 'place','remove','discard', 'turn', 'reduce','combine','raise']
     lowercase = instruction.lower()
     tokens = word_tokenize(lowercase)
     parts_tuples = pos_tag(tokens)
@@ -340,6 +343,39 @@ def find_instruction_ingredients(instruction, all_ingredients):
                 break
     return list(set(ingredients_list))
 
+def non_vege_to_vege(all_instructions,all_ingredients):
+    all_meat = ['beef','fish','goat','lamb','meatball','pork','poultry','sausage','seafood','bacon','ham']
+    vege = 'tofu'
+    transformed_instruction = []
+    all_instructions_copy = copy.deepcopy(all_instructions)
+    #loop over all intructions
+    for instruction in all_instructions_copy:
+        vege_ingre = []
+        c_ingredients = instruction['ingredients']
+        if c_ingredients:
+            for c_ingre in c_ingredients:
+                if c_ingre in all_meat:
+                    vege_ingre.append(vege)
+                else:   
+                    vege_ingre.append(c_ingre)
+        instruction['ingredients'] = vege_ingre
+        transformed_instruction.append(instruction)
+    #transfer the ingredients list
+    transformed_ingredients = []
+    for c_ingre in all_ingredients:
+        if c_ingre in all_meat:
+            transformed_ingredients.append(vege)
+        else:   
+            transformed_ingredients.append(c_ingre)
+    transformed_ingredients = list(set(transformed_ingredients))      
+    return transformed_instruction,transformed_ingredients
+
+
+def non_heal_to_heal(all_instructions,all_methods):
+
+    pass
+
+
 if __name__ == '__main__':
     all_strings = fetch_page(set_url)
     ing_strings = all_strings[0]
@@ -358,14 +394,15 @@ if __name__ == '__main__':
     print(all_methods)
     print("Creating instruction object for each instruction:")
     all_instructions = assemble_instruction_objects(dir_strings, all_ingredients)
+    transformed_instructions,transformed_ingredients = non_vege_to_vege(all_instructions,all_ingredients)
+
     for i in range(0, len(dir_strings)):
         print(dir_strings[i])
         print(all_instructions[i])
+        print(transformed_instructions[i])
     print(all_ingredients)
-    
-    
-    
-    
+    print(transformed_ingredients)
+
     
     
     
