@@ -442,6 +442,25 @@ def non_heal_to_heal(all_instructions,all_methods):
 
     pass
 
+'''
+ingredient string generator:
+inputs a (modified) ingredient object, outputs a transformed ingredient string
+'''
+def generate_ingredient_string(ing):
+    special_case = False
+    ing_fields = [ing['quantity'], ing['measurement'], ing['descriptor'], ing['preparation'], ing['name']]
+    if ing['measurement'] == ['to', 'taste']:
+        special_case = True
+        ing_fields = [ing['quantity'], ing['descriptor'], ing['preparation'], ing['name']]
+    temp = []
+    for field in ing_fields:
+        temp.append("".join([" "+i if not i.startswith("'") and i not in string.punctuation else i for i in field]).strip())
+    ing_string = "".join([" "+i if not i.startswith("'") and i not in string.punctuation else i for i in temp]).strip()
+    if special_case:
+        return ing_string + ", to taste"
+    else:
+        return ing_string
+
 
 if __name__ == '__main__':
     all_strings = fetch_page(set_url)
