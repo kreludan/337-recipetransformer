@@ -360,9 +360,12 @@ def find_instruction_ingredients(instruction, all_ingredients):
 
 '''
 CUSTOM TRANSFORM:
-Regular recipe ---> Indian food!!! Gotta do it for the culture (':
+Regular recipe ---> South Asian food!!! Gotta do it for the culture (':
 Transform rules (for documentation's sake):
-(1.) Kinda the golden rule is No Cow Meat Allowed; goat or lamb are pretty reasonable replacements, will go with lamb probably
+(1.) Kinda the golden rule for Hindus is No Cow Meat Allowed; goat or lamb are pretty reasonable replacements
+---Brown folks (especially Muslim folks) don't really eat pork like that tbh... might need to change that as well
+---Maybe cow --> lamb, pork --> goat??? IDK
+
 (2.) Change the oil... olive/canola aren't really things, Mustard oil might be the most reasonable
 (3.) If it's a savory dish, gotta do the following;
 ---If cooked, then the spice pantheon; ginger/garlic paste, cumin/turmeric/red chili/coriander powder
@@ -377,7 +380,7 @@ Changes to the cooking?
 ---Not sure if this should be included as a preparation in the instructions, or not, though......
 '''
 def custom_transform(title = "placeholder", ingredient_objects, instruction_objects):
-    banned = ['cow', 'beef', 'steak', 'filet', 'mignon']   #  cow meat is disallowed!! गाय हमारी माता हे 
+    banned = ['cow', 'beef', 'steak', 'filet', 'mignon', 'brisket']   #  गाय हमारी माता हे !!!! don't eat cows
     ingredients = copy.deepcopy(ingredient_objects)
     
     is_savory = False
@@ -393,6 +396,11 @@ def custom_transform(title = "placeholder", ingredient_objects, instruction_obje
     sweet_measurement = "teaspoons"
     
     for ingredient in ingredients:
+        
+        for banned_word in banned:          #  replaces cow with lamb... will probably need to refine this, huh 
+            if banned_word in ingredient['name']:  #  update w/ pork too? 
+                ingredient['name'] = 'lamb'
+                
         if 'oil' in ingredient['name'] and 'salad' not in title:   # people be putting olive oil in their salads, huh...
             ingredient['name'] = 'oil'
             ingredient['descriptor'] = 'mustard'
