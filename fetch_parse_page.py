@@ -373,20 +373,20 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
 
     banned = ['chuck', 'boneless', 'bone']
 
-    # For things like heart, liver, tongue, baloney, sausage, caviar or fish eggs
+    # For things like heart, liver, tongue, stomach, intestines
     # only replace that particular buzz word, and ignore all the other parts of the name we
     # are looking at.
+    spec_organs_or_misc = ['heart', 'liver', 'tongue', 'stomach', 'intestine']
 
-    # Lentils: ground beef, shredded pork
-    #           "ground" typically held in 'descriptor' field, so check if its beef AND the descriptor is ground/grounded
+    # Lentils: fish eggs
 
-    # Seitan: chicken, beef, or pork
+    # Seitan: chicken, beef
     #           - Including other types of birds as well
 
     # Specific replacement for seitan
-    spec_replacements = ['beef', 'chicken', 'pork', 'calf', 'goose', 'ostrich',\
+    spec_replacements = ['beef', 'chicken', 'calf', 'goose', 'ostrich',\
                         'partridge', 'pheasant', 'quail', 'turkey', 'hen', 'duck', 'emu']
-    # Tempeh: fish
+    # Tempeh: fish, pork
     # default: tofu
 
     vegeList = ['tofu', 'tempeh', 'seitan', 'lentils']
@@ -396,29 +396,69 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
     instruction_object_copy = copy.deepcopy(instruction_objects)
     #loop over all intructions
     for instruction in instruction_object_copy:
+        prev_ingredient = ''
         vege_ingre = []
         c_ingredients = instruction['ingredients']
         if c_ingredients:
             for c_ingre in c_ingredients:
-                if (c_ingre in meats) or (c_ingre in fish):
-                    vege_ingre.append(vege)
-                else:   
+                c_ingre = c_ingre.lower()
+                if depluralize(c_ingre) in meats or depluralize(c_ingre) in fish:
+                    if depluralize(c_ingre) in spec_replacements:
+                        vege_ingre.append('seitan')
+                    elif depluralize(c_ingre) in fish or depluralize(c_ingre) == 'pork':
+                        vege_ingre.append('tempeh')
+                    elif depluralize(c_ingre) in spec_organs:
+                        # get rid of first part of organ name (i.e., pig intestine, cow tongue, etc)
+                        vege_ingre.pop()
+                        vege_ingre.append('tofu')
+                    else:
+                        vege_ingre.append('tofu')
+                elif depluralize(c_ingre) == 'egg':
+                    if prev_ingredient == 'fish' or prev_ingredient in fish:
+                        vege_ingre.pop()
+                        vege_ingre.append('lentils')
+                elif depluralize(c_ingre) in fats:
+                    vege_ingre.append('butter')
+                else:
                     vege_ingre.append(c_ingre)
+
+                prev_ingredient = c_ingre
         instruction['ingredients'] = vege_ingre
         transformed_instruction.append(instruction)
     #transfer the ingredients list
     for c_ingre in ingredient_objects:
         n = c_ingre['name']
         desc = c_ingre['descriptor']
+        prev_ingredient = ''
         for i,string in enumerate(n, 0):
-            if depluralize(string.lower()) in meats or depluralize(string.lower()) in fish:
-                # replace with relevant vegetable, for now tofu
+            string = string.lower()
+
+            if depluralize(string) in meats or depluralize(string) in fish:
+                # replace with relevant vegetable
+                if depluralize(string) in spec_replacements:
+                    c_ingre['name'][i] = 'seitan'
+                elif depluralize(string) in fish or depluralize(string) == 'pork':
+                    c_ingre['name'][i] = 'tempeh'
+                elif depluralize(string) in spec_organs_or_misc:
+                    c_ingre['name'][i] = 'tofu'
+                    c_ingre['name'].pop(i-1)
+                else:
+                    c_ingre['name'][i] = 'tofu'
+            elif depluralize(string) == 'egg':
+                if prev_ingredient == 'fish' or prev_ingredient in fish:
+                    c_ingre['name'][i] = 'lentils'
+                    c_ingre['name'].pop(i-1)
+            elif depluralize(string) in fats:
+                vege_ingre.append('butter')
+
                 c_ingre['name'][i] = 'tofu'
             elif string.lower() in fats:
                 # replace with a vegetarian oil/fat
                 c_ingre['name'][i] = 'butter'
             elif string.lower() in banned:
                 c_ingre['name'].pop(i)
+
+            prev_ingredient = string
 
         for i,string in enumerate(desc, 0):
             if depluralize(string.lower()) in meats or depluralize(string.lower()) in fish:
