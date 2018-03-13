@@ -39,7 +39,10 @@ Tool parser testing; initially for the tool parser tried an approach that made u
 --issues, so eventually just settled for a simpler approach that searches from a list of already-known tool words. Will just keep--
 --updating this to make it more extensive and applicable to a variety of recipes.
 
-
+For not healthy to healthy, can use the following food 'hacks':
+    - https://www.goredforwomen.org/live-healthy/heart-healthy-cooking-tips/healthy-substitutions/
+    - https://www.nhlbi.nih.gov/health/educational/lose_wt/eat/shop_lcal_fat.htm
+    - https://www.swansonvitamins.com/blog/natural-health-tips/food-replacement-hacks
 """
 
 from bs4 import BeautifulSoup
@@ -584,7 +587,24 @@ def depluralize(ingredient):
         return ingredient
 
 def non_heal_to_heal(all_instructions,all_methods):
+    """
+    Substitutes to consider:
+        Rice -> Quinoa                  (150% more fiber and protein for same serving)
+        Mayo -> Mustard                 (mustard has no sugar or saturated fat, compared to mayo)
+        Sour Cream -> Greek Yogurt      (half the calories, 3x the protein)
+        Croutons -> Almonds             (1/3 carbs, 2x protein, 3x fiber)
+        Flour -> Coconut flour          (fewer carbs, 11x fiber)
+        Chocolate -> Cacao / cacao nibs (no sugar, 5x fiber)
+        Bread crumbs -> chia seeds      (19x fiber, 2x protein, 1/35th sodium)
+        Peanut butter -> almond butter  (no hydrogenated vegetable oils or added sugar)
+        Milk -> Skim Milk / Almond Milk (Almond Milk has less sugar and more calcium, Skim Milk has less fat)
+        Cheese -> fat free cheese       (self explanatory)
+        Eggs -> egg whites              (will typically need 2x as much eggs to get the same portion size)
+                                        (lower cholestrol basically)
+        lettuce -> spinach/arugula
+        butter -> 1/2 canola oil, 1/2 unsweetened applesauce
 
+    """
     pass
 
 '''
