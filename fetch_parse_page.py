@@ -46,6 +46,7 @@ from bs4 import BeautifulSoup
 import urllib.request
 from nltk import pos_tag, word_tokenize
 import copy
+import string
 from nltk.stem.porter import *
 #   For now, the URL has to be manually changed here
 #   Ideally by the end we'll have some walkthrough / user input interface which will be nicer
