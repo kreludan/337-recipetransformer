@@ -358,22 +358,39 @@ def find_instruction_ingredients(instruction, all_ingredients):
 def non_vege_to_vege(ingredient_objects, instruction_objects):
     #    ingredients_objects = find_ingredients_objects(ing_strings)
     #   all_ingredients = full_ingredients_list(ingredients_objects)
-
     meats = ['bear', 'beef', 'heart', 'liver', 'tongue', 'buffalo', 'bison', 'calf', 'caribou', \
-            'steak', 'poultry', 'chickens',\
+            'steak', 'poultry', 'lamb'\
             'goat', 'ham', 'horse', 'kangaroo', 'lamb', 'moose', 'mutton', 'pork', 'bacon', 'rabbit',\
             'snake', 'squirrel', 'tripe', 'turtle', 'veal', 'venison', 'chicken', 'hen', 'duck', 'emu',\
             'gizzard', 'goose', 'ostrich', 'partridge', 'pheasant', 'quail', 'turkey', 'baloney', 'sausage', 'sausages']
 
     fish = ['fish', 'salmon', 'trout', 'bass', 'catfish', 'shrimp', 'cod', 'pollock', 'tilapia', 'clam', 'clams'\
-            'crab', 'oyster', 'oysters', 'flounder', 'lobster', 'yellowtail', 'sturgeon', 'octopus', 'squid'\
+            'crab', 'oyster', 'oysters', 'flounder', 'lobster', 'yellowtail', 'sturgeon', 'octopus', 'squid', 'caviar'\
             'mackerel', 'anchovy', 'anchovies', 'scallop', 'scallops', 'tuna', 'eel', 'crawfish', 'crayfish']
 
     fats = ['fat', 'lard']
 
     banned = ['chuck', 'boneless', 'bone']
 
+    # For things like heart, liver, tongue, baloney, sausage, caviar or fish eggs
+    # only replace that particular buzz word, and ignore all the other parts of the name we
+    # are looking at.
+
+    # Lentils: ground beef, shredded pork
+    #           "ground" typically held in 'descriptor' field, so check if its beef AND the descriptor is ground/grounded
+
+    # Seitan: chicken, beef, or pork
+    #           - Including other types of birds as well
+
+    # Specific replacement for seitan
+    spec_replacements = ['beef', 'chicken', 'pork', 'calf', 'goose', 'ostrich',\
+                        'partridge', 'pheasant', 'quail', 'turkey', 'hen', 'duck', 'emu']
+    # Tempeh: fish
+    # default: tofu
+
+    vegeList = ['tofu', 'tempeh', 'seitan', 'lentils']
     vege = 'tofu'
+    
     transformed_instruction = []
     instruction_object_copy = copy.deepcopy(instruction_objects)
     #loop over all intructions
