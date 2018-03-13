@@ -147,6 +147,8 @@ def parse_ingredient(description):
     parts_tuples = pos_tag(text)
     parts = parts_fix(parts_tuples)
     
+    vbp_words = ['cumin', 'canola']  # edge case; to account for
+    
     # Classify relevant words based on their part of speech / assigned tag
     i = 0
     while(i < len(parts)):
@@ -167,7 +169,7 @@ def parse_ingredient(description):
                 ing_data['preparation'].append(parts[i][0])
         elif parts[i][1] == 'VBD' or parts[i][1] == 'VBN':
             ing_data['preparation'].append(parts[i][0])
-        elif parts[i][1] == 'JJ':
+        elif 'JJ' in parts[i][1] or (parts[i][1] == 'VBP' and parts[i][0] in vbp_words):
             ing_data['descriptor'].append(parts[i][0])
             if len(parts[i:]) > 1 and (parts[i][0] == 'low' or parts[i][0] == 'high') and (parts[i+1][1] == 'NN' or parts[i+1][1] == 'RB'):
                 ing_data['descriptor'].append(parts[i+1][0])
@@ -345,7 +347,7 @@ def assemble_instruction_objects(dir_strings, all_ingredients):
         inferred_methods = inferred_methods + instruction_object['inferred_methods']
         instruction_objects.append(instruction_object)
     return instruction_objects
-
+    
 def find_instruction_ingredients(instruction, all_ingredients):
     ingredients_list = []
     tokens = word_tokenize(instruction)
@@ -356,6 +358,99 @@ def find_instruction_ingredients(instruction, all_ingredients):
                 break
     return list(set(ingredients_list))
 
+'''
+CUSTOM TRANSFORM:
+Regular recipe ---> Indian food!!! Gotta do it for the culture (':
+Transform rules (for documentation's sake):
+(1.) Kinda the golden rule is No Cow Meat Allowed; goat or lamb are pretty reasonable replacements, will go with lamb probably
+(2.) Change the oil... olive/canola aren't really things, Mustard oil might be the most reasonable
+(3.) If it's a savory dish, gotta do the following;
+---If cooked, then the spice pantheon; ginger/garlic paste, cumin/turmeric/red chili/coriander powder
+---If uncooked, then cumin seeds, coriander and mint
+---The vegetable core; onions, tomatoes, green chili; 1.5x those already included, add 1 of whatever isn't
+(4.) If it's a sweet dish, we can give it a ~desi twist~;
+---Add some pistachios, and add some saffron
+---Sugar should probably be brown sugar?
+
+Changes to the cooking?
+---If cooking is involved, then generally you should sear the vegetables before doing anything else with them
+---Not sure if this should be included as a preparation in the instructions, or not, though......
+'''
+def custom_transform(title = "placeholder", ingredient_objects, instruction_objects):
+    banned = ['cow', 'beef', 'steak', 'filet', 'mignon']   #  cow meat is disallowed!! गाय हमारी माता हे 
+    ingredients = copy.deepcopy(ingredient_objects)
+    
+    is_savory = False
+    savory_amt = 0  # if it has both sugar and salt, we'll determine if it's savory by seeing which it has more of
+    is_sweet = False  #  maybe not the best way to determine it but... idk.
+    sweet_amt = 0
+    is_cooked = False
+    has_onions = False
+    has_tomatoes = False
+    has_greenchilies = False
+    
+    savory_measurement = "teaspoons"    #  setting as a default, just in case
+    sweet_measurement = "teaspoons"
+    
+    for ingredient in ingredients:
+        if 'oil' in ingredient['name'] and 'salad' not in title:   # people be putting olive oil in their salads, huh...
+            ingredient['name'] = 'oil'
+            ingredient['descriptor'] = 'mustard'
+            is_cooked = True
+        if 'salt' in ingredient['name'] or 'pepper' in ingredient['name']:
+            is_savory = True
+            savory_amt = savory_amt + convert_to_number(ingredient['quantity'])
+            savory_measurement = ingredient['measurement']
+        if 'sugar' in ingredient['name']:
+            ingredient['descriptor'] = 'brown'
+            banned_sugar = ['refined', 'powdered']
+            to_delete = []
+            for i in range(0, len(ingredient['preparation'])):
+                if ingredient['preparation'][i] in banned_sugar:   # no refined / powdered sugar in this house!!
+                    to_delete.append(i)
+            if len(to_delete) > 0:
+                for index in to_delete:
+                    del ingredient['preparation'][index]
+            is_sweet = True
+            sweet_amt = sweet_amt + convert_to_number(ingredient['quantity'])
+            sweet_measurement = ingredient['measurement']
+        if 'tomato' in ingredient['name'] or 'tomatoes' in ingredient['name']:
+            has_tomatoes = True
+            ingredient['quantity'] = str(convert_to_number(ingredient['quantity']) * 1.5)
+        if 'onion' in ingredient['name'] or 'onions' in ingredient['name']:
+            has_onions = True
+            ingredient['quantity'] = str(convert_to_number(ingredient['quantity']) * 1.5)
+        if ('chili' in ingredient['name'] or 'chilies' in ingredient['name']) and 'green' in ingredient['descriptor']:
+            has_greenchilies = True
+            ingredient['quantity'] = str(convert_to_number(ingredient['quantity']) * 1.5)
+    
+    # First determine if sweet or savory
+    if is_savory and (not is_sweet or (savory_amt >= sweet_amt)):   # savory case
+        return 1
+    else:
+        return 2
+    ###### TO COMPLETE #####
+        
+            
+        
+    
+    
+
+def convert_to_number(quantity):  # converts quantity field of ingredient object to an actual number
+    total_amount = 0
+    has_alpha = False
+    for number in quantity:
+        if any(c.isalpha() for c in number):
+            has_alpha = True
+            break
+        if '/' in number:
+            total_amount = total_amount + (int(number[0])/int(number[2]))
+        else:
+            total_amount = total_amount + int(number)
+    if has_alpha == True and total_amount == 0:  # returns 0 for "to taste" while still returing a value for "2 1/2 plus to taste"
+        return 0
+    return total_amount
+
 def non_vege_to_vege(ingredient_objects, instruction_objects):
     #    ingredients_objects = find_ingredients_objects(ing_strings)
     #   all_ingredients = full_ingredients_list(ingredients_objects)
@@ -363,7 +458,8 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
             'steak', 'poultry', 'lamb'\
             'goat', 'ham', 'horse', 'kangaroo', 'lamb', 'moose', 'mutton', 'pork', 'bacon', 'rabbit',\
             'snake', 'squirrel', 'tripe', 'turtle', 'veal', 'venison', 'chicken', 'hen', 'duck', 'emu',\
-            'gizzard', 'goose', 'ostrich', 'partridge', 'pheasant', 'quail', 'turkey', 'baloney', 'sausage', 'sausages']
+            'gizzard', 'goose', 'ostrich', 'partridge', 'pheasant', 'quail', 'turkey', 'baloney', 'sausage', 'sausages',\
+            'spam']
 
     fish = ['fish', 'salmon', 'trout', 'bass', 'catfish', 'shrimp', 'cod', 'pollock', 'tilapia', 'clam', 'clams'\
             'crab', 'oyster', 'oysters', 'flounder', 'lobster', 'yellowtail', 'sturgeon', 'octopus', 'squid', 'caviar'\
@@ -489,7 +585,7 @@ inputs a (modified) ingredient object, outputs a transformed ingredient string
 '''
 def generate_ingredient_string(ing):
     special_case = False
-    ing_fields = [ing['quantity'], ing['measurement'], ing['descriptor'], ing['preparation'], ing['name']]
+    ing_fields = [ing['quantity'], str(convert_to_number(ing['measurement'])), ing['descriptor'], ing['preparation'], ing['name']]
     if ing['measurement'] == ['to', 'taste']:
         special_case = True
         ing_fields = [ing['quantity'], ing['descriptor'], ing['preparation'], ing['name']]
@@ -520,11 +616,11 @@ if __name__ == '__main__':
     all_methods = full_methods_list(dir_strings, all_ingredients)
     print(all_methods)
     print("Creating instruction object for each instruction:")
-    all_instructions = assemble_instruction_objects(dir_strings, all_ingredients)
-    transformed_instructions,transformed_ingredients = non_vege_to_vege(ingredients_objects,all_instructions)
+    instructions_objects = assemble_instruction_objects(dir_strings, all_ingredients)
+    transformed_instructions,transformed_ingredients = non_vege_to_vege(ingredients_objects,instructions_objects)
     for i in range(0, len(dir_strings)):
         print(dir_strings[i])
-        #print(all_instructions[i])
+        #print(instructions_objects[i])
         print(transformed_instructions[i])
 
     #print(all_ingredients)
