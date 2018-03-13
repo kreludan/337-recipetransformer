@@ -95,7 +95,8 @@ def parts_fix(tuples):
     JJ_corrections = ['small', 'medium', 'large']
     VBD_corrections = ['ground']
     VB_corrections = ['combine', 'coat', 'cook', 'stir', 'drain', 'toss', 'serve', 'place', 'brush', 'beat', 'bake',
-                      'mix', 'cut', 'baste', 'grill', 'thread', 'roast','stewing','stew','boil','grill', 'arrange']
+                      'mix', 'cut', 'baste', 'grill', 'thread', 'roast','stewing','stew','boil','grill', 'arrange', 'fry',
+                      'heat']
     NN_corrections = ['garlic']  #  really not sure why this one's an issue...
     #  was thinking of puting some stuff like 'extra' / 'to taste' as numbers, but what about like... 'extra-virgin olive oil'
     #  something to consider, I guess
@@ -359,7 +360,7 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
     #   all_ingredients = full_ingredients_list(ingredients_objects)
 
     meats = ['bear', 'beef', 'heart', 'liver', 'tongue', 'buffalo', 'bison', 'calf', 'caribou', \
-            'steak', 'poultry'\
+            'steak', 'poultry', 'chickens',\
             'goat', 'ham', 'horse', 'kangaroo', 'lamb', 'moose', 'mutton', 'pork', 'bacon', 'rabbit',\
             'snake', 'squirrel', 'tripe', 'turtle', 'veal', 'venison', 'chicken', 'hen', 'duck', 'emu',\
             'gizzard', 'goose', 'ostrich', 'partridge', 'pheasant', 'quail', 'turkey', 'baloney', 'sausage', 'sausages']
@@ -392,7 +393,7 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
         n = c_ingre['name']
         desc = c_ingre['descriptor']
         for i,string in enumerate(n, 0):
-            if string.lower() in meats or string.lower() in fish:
+            if depluralize(string.lower()) in meats or depluralize(string.lower()) in fish:
                 # replace with relevant vegetable, for now tofu
                 c_ingre['name'][i] = 'tofu'
             elif string.lower() in fats:
@@ -402,7 +403,7 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
                 c_ingre['name'].pop(i)
 
         for i,string in enumerate(desc, 0):
-            if string.lower() in meats or string.lower() in fish:
+            if depluralize(string.lower()) in meats or depluralize(string.lower()) in fish:
                 # change descriptor, so basically just make it vegetable
                 c_ingre['descriptor'][i] = 'vegetable'
             elif string.lower() in banned:
@@ -410,6 +411,15 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
 
     return transformed_instruction,ingredient_objects
 
+def depluralize(ingredient):
+    if ingredient[-3:] == 'ies':
+        return ingredient[:-3] + 'y'
+    elif ingredient[-2:] == 'es':
+        return ingredient[:-2]
+    elif ingredient[-1:] == 's':
+        return ingredient[:-1]
+    else:
+        return ingredient
 
 def non_heal_to_heal(all_instructions,all_methods):
 
@@ -437,14 +447,14 @@ if __name__ == '__main__':
     transformed_instructions,transformed_ingredients = non_vege_to_vege(ingredients_objects,all_instructions)
     for i in range(0, len(dir_strings)):
         print(dir_strings[i])
-        print(all_instructions[i])
+        #print(all_instructions[i])
         print(transformed_instructions[i])
 
-    print(all_ingredients)
+    #print(all_ingredients)
 
     all_transformed_ingredients = full_ingredients_list(transformed_ingredients)
     print(transformed_ingredients)
-    print(all_transformed_ingredients)
+    #print(all_transformed_ingredients)
 
 
     
