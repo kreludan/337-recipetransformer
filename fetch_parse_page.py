@@ -712,7 +712,7 @@ def non_heal_to_heal(ingredient_objects, instruction_objects):
             if depluralize(string) == 'cream' and 'sour' in desc:
                 c_ingre['name'][i] = 'yogurt'
                 map(lambda x:x if x != 'sour' else 'greek',c_ingre['descriptor'])
-            elif depluralize(string) == 'cheese':
+            elif depluralize(string) == 'cheese' or depluralize(string) == 'chees':
                 c_ingre['descriptor'].append('low-fat')
             elif depluralize(string) == 'peanut':
                 c_ingre['name'][i] = 'almond'
