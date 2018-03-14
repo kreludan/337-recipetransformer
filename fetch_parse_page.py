@@ -407,7 +407,8 @@ Changes to the cooking?
 ---Not sure if this should be included as a preparation in the instructions, or not, though......
 '''
 def custom_transform( ingredient_objects, instruction_objects,title = "placeholder",):
-    banned = ['cow', 'beef', 'steak', 'filet', 'mignon', 'brisket']   #  गाय हमारी माता हे !!!! don't eat cows
+    banned = ['cow', 'beef', 'steak', 'filet', 'mignon', 'brisket', 'pork']   #  गाय हमारी माता हे !!!! don't eat cows; also pork
+    to_modify = ['hotdog', 'ribs']
     ingredients = copy.deepcopy(ingredient_objects)
     
     is_savory = False
@@ -426,18 +427,22 @@ def custom_transform( ingredient_objects, instruction_objects,title = "placehold
         
         for banned_word in banned:          #  replaces cow with lamb... will probably need to refine this, huh 
             if banned_word in ingredient['name']:  #  update w/ pork too? 
-                ingredient['name'] = 'lamb'
-                
+                ingredient['name'] = ['lamb']
+        
+        for mod_word in to_modify:
+            if mod_word in ingredient['name']:  #  gotta qualify the ingredient as being a lamb replacement
+                ingredient['descriptor'] = ['lamb']
+
         if 'oil' in ingredient['name'] and 'salad' not in title:   # people be putting olive oil in their salads, huh...
-            ingredient['name'] = 'oil'
-            ingredient['descriptor'] = 'mustard'
+            ingredient['name'] = ['oil']
+            ingredient['descriptor'] = ['mustard']
             is_cooked = True
         if 'salt' in ingredient['name'] or 'pepper' in ingredient['name']:
             is_savory = True
             savory_amt = savory_amt + convert_to_number(ingredient['quantity'])
             savory_measurement = ingredient['measurement']
         if 'sugar' in ingredient['name']:
-            ingredient['descriptor'] = 'brown'
+            ingredient['descriptor'] = ['brown']
             banned_sugar = ['refined', 'powdered']
             to_delete = []
             for i in range(0, len(ingredient['preparation'])):
@@ -458,8 +463,11 @@ def custom_transform( ingredient_objects, instruction_objects,title = "placehold
         if ('chili' in ingredient['name'] or 'chilies' in ingredient['name']) and 'green' in ingredient['descriptor']:
             has_greenchilies = True
             ingredient['quantity'] = str(convert_to_number(ingredient['quantity']) * 1.5)
+        if 'lettuce' in ingredient['name']:
+            ingredient['name'] = 'cabbage'
     
     # First determine if sweet or savory
+
     if is_savory and (not is_sweet or (savory_amt >= sweet_amt)):   # savory case
         return 1
     else:
@@ -469,6 +477,48 @@ def custom_transform( ingredient_objects, instruction_objects,title = "placehold
             
 
 
+        if is_cooked:
+            spice_amounts = str(savory_amt / 2)
+            base_string = spice_amounts + ' ' + savory_measurement + ' '
+            south_indian_spices = ['ginger paste', 'garlic paste', 'cumin powder', 'turmeric powder', 'red chili powder', 'coriander powder'] ## NOTE THAT SHOULD SEARCH FOR THESE IN THE RECIPE FIRST, SO NO DOUBLE-INGRED.
+            for spice in south_indian_spices:
+                ingredients.append(parse_ingredient(base_string + spice))
+        else:
+            south_indian_leaves = ['coriander leaves', 'mint leaves']
+            ingredients.append(parse_ingredient('2 teaspoons cumin seeds'))
+            for leaf in south_indian_leaves:
+                ingredients.append(parse_ingredient('2 tablespoons ' + leaf))
+
+        if not has_tomatoes:
+            ingredients.append(parse_ingredient('2 diced tomatoes'))
+        if not has_onions:
+            ingredients.append(parse_ingredient('2 diced onions'))
+        if not has_greenchilies:
+            ingredients.append(parse_ingredient('2 diced green chilies'))
+
+    else:  #  sweet case
+        sweet_amounts = str(sweet_amt / 2)
+        base_string = sweet_amounts + ' ' + sweet_measurement + ' '
+        south_indian_sweets = ['crushed pistachios', 'saffron']
+        for sweet in south_indian_sweets:
+            ingredients.append(parse_ingredient(base_string + sweet))
+    
+    instructions = copy.deepcopy(instruction_objects)
+
+    for instruction in instructions:
+        for ingredient in instruction['ingredients']:  # Update ingredients; both replacements, and add new ones if necessary to certain steps
+            ## EXPLICIT INGREDIENT RE-NAMING
+            for banned_word in banned:
+                if banned_word in ingredient:
+                    ingredient = 'lamb'
+                    break
+            for mod_word in to_modify:
+                if mod_word in ingredient:
+                    ingredient = 'lamb ' + ingredient
+                    break
+
+    return 1
+    ###### TO COMPLETE ####    
 
 def convert_to_number(quantity):  # converts quantity field of ingredient object to an actual number
     total_amount = 0
@@ -715,7 +765,9 @@ def italian_transform(ingredient_objects, instruction_objects,title = "placehold
 
 
 def depluralize(ingredient):
-    if ingredient[-3:] == 'ies':
+    if ingredient == 'cheeses':
+        return 'cheese'
+    elif if ingredient[-3:] == 'ies':
         return ingredient[:-3] + 'y'
     elif ingredient[-2:] == 'es':
         return ingredient[:-2]
@@ -724,7 +776,7 @@ def depluralize(ingredient):
     else:
         return ingredient
 
-def non_heal_to_heal(all_instructions,all_methods):
+def non_heal_to_heal(ingredient_objects, instruction_objects):
     """
     Substitutes to consider:
         Rice -> Quinoa                  (150% more fiber and protein for same serving)
@@ -740,10 +792,153 @@ def non_heal_to_heal(all_instructions,all_methods):
         Eggs -> egg whites              (will typically need 2x as much eggs to get the same portion size)
                                         (lower cholestrol basically)
         lettuce -> spinach/arugula
-        butter -> 1/2 canola oil, 1/2 unsweetened applesauce
+        butter/oil -> 1/2 canola oil, 1/2 unsweetened applesauce
 
+        Instruction object layout for reference
+        instruction_object = {'ingredients': [], 'parsed_tools': [], 'inferred_tools': [], 'parsed_methods': [], 'inferred_methods': [],
+        'primary_method':[],'other_method':[]}
     """
-    pass
+    transformed_instruction = []
+
+    found_sour_cream = False
+    #transfer the ingredients list
+    for c_ingre in ingredient_objects:
+        n = c_ingre['name']
+        desc = c_ingre['descriptor']
+        for i,string in enumerate(n, 0):
+            string = string.lower()
+            if depluralize(string) == 'cream' and 'sour' in desc:
+                c_ingre['name'][i] = 'yogurt'
+                map(lambda x:x if x != 'sour' else 'greek',c_ingre['descriptor'])
+            elif depluralize(string) == 'cheese' or depluralize(string) == 'chees':
+                c_ingre['descriptor'].append('low-fat')
+            elif depluralize(string) == 'peanut':
+                c_ingre['name'][i] = 'almond'
+                # in general should be healthier, so can replace peanuts with almonds in general
+            elif depluralize(string) == 'flour':
+                c_ingre['name'] = ['coconut', 'flour']
+            elif depluralize(string) == 'lettuce':
+                c_ingre['name'] = ['spinach']
+            elif depluralize(string) in ['sugar', 'salt']:
+                val = convert_to_number(c_ingre['quantity'])
+                val = val / 2
+                # just half the level of salt and level of sugar
+                c_ingre['quantity'] = ['{0}'.format(val)]
+            elif depluralize(string) == 'butter' or depluralize(string) == 'oil':
+                # Change fat type and decrease it by 25%
+                c_ingre['name'] = ['oil']
+                c_ingre['descriptor'] = ['extra-virgin', 'olive']
+                val = convert_to_number(c_ingre['quantity'])
+                val = (val*3)/4
+                c_ingre['quantity'] = ['{0}'.format(val)]
+
+    instruction_object_copy = copy.deepcopy(instruction_objects)
+    #loop over all intructions
+    for instruction in instruction_object_copy:
+        healthy_ingredients = []
+        c_ingredients = instruction['ingredients']
+        if c_ingredients:
+            for c_ingre in c_ingredients:
+                c_ingre = c_ingre.lower()
+                if depluralize(c_ingre) == 'rice':
+                    healthy_ingredients.append('quinoa')
+                elif depluralize(c_ingre) == 'mayo' or depluralize(c_ingre) == 'mayonnaise':
+                    healthy_ingredients.append('mustard')
+                elif depluralize(c_ingre) == 'chocolate':
+                    healthy_ingredients.append('cacao')
+                elif depluralize(c_ingre) == 'crouton' or depluralize(c_ingre) == 'peanut':
+                    healthy_ingredients.append('almond')
+                elif depluralize(c_ingre) == 'lettuce':
+                    healthy_ingredients.append('spinach')
+                elif found_sour_cream and depluralize(c_ingre) == 'cream':
+                    healthy_ingredients.append('yogurt')                    
+                else:
+                    healthy_ingredients.append(c_ingre)
+
+                #elif depluralize(c_ingre) == 'sour':
+                #    healthy_ingredients.append('greek')
+                #elif depluralize(c_ingre) == 'cream':
+                #    if healthy_ingredients[-1] == 'greek':
+                #        healthy_ingredients.append('yogurt')
+                #    else:
+                #        healthy_ingredients.append(c_ingre)
+
+        instruction['ingredients'] = healthy_ingredients
+        transformed_instruction.append(instruction)
+
+    return transformed_instruction,ingredient_objects
+
+def heal_to_non_heal(ingredient_objects, instruction_objects):
+    transformed_instruction = []
+
+    found_sour_cream = False
+    #transfer the ingredients list
+    for c_ingre in ingredient_objects:
+        n = c_ingre['name']
+        desc = c_ingre['descriptor']
+        for i,string in enumerate(n, 0):
+            string = string.lower()
+            if depluralize(string) == 'yogurt' or depluralize(string) == 'yoghurt':
+                c_ingre['name'] = ['cream']
+                c_ingre['descriptor'] = ['sour']
+            elif depluralize(string) == 'cheese':
+                map(lambda x:x if x != 'low-fat' else 'full-fat',c_ingre['descriptor'])
+                if not 'full-fat' in c_ingre['descriptor']:
+                    c_ingre['descriptor'].append('full-fat')
+            elif depluralize(string) == 'almond':
+                c_ingre['name'][i] = 'peanut'
+                # in general should be healthier, so can replace peanuts with almonds in general
+            elif depluralize(string) == 'rice' or depluralize(string) == 'quinoa':
+                c_ingre['name'][i] = 'rice'
+                c_ingre['descriptor'] = ['processed']
+            elif depluralize(string) == 'flour':
+                c_ingre['name'] = ['flour']
+                c_ingre['descriptor'] = ['white']
+            elif depluralize(string) == 'spinach' or depluralize(string) == 'aragula' or depluralize(string) == 'cabbage':
+                c_ingre['name'] = ['lettuce']
+                c_ingre['descriptor'] = ['romaine']
+            elif depluralize(string) in ['sugar', 'salt']:
+                val = convert_to_number(c_ingre['quantity'])
+                val = val * 2
+                # just half the level of salt and level of sugar
+                c_ingre['quantity'] = ['{0}'.format(val)]
+            elif depluralize(string) == 'butter' or depluralize(string) == 'oil':
+                # Change fat type and increase it by 25%
+                c_ingre['name'] = ['lard']
+                c_ingre['descriptor'] = []
+                val = convert_to_number(c_ingre['quantity'])
+                val = (val*4)/3
+                c_ingre['quantity'] = ['{0}'.format(val)]
+
+    instruction_object_copy = copy.deepcopy(instruction_objects)
+    #loop over all intructions
+    for instruction in instruction_object_copy:
+        not_healthy_ingredients = []
+        c_ingredients = instruction['ingredients']
+        if c_ingredients:
+            for c_ingre in c_ingredients:
+                c_ingre = c_ingre.lower()
+                if depluralize(c_ingre) == 'quinoa':
+                    not_healthy_ingredients.append('rice')
+                elif depluralize(c_ingre) == 'mustard':
+                    not_healthy_ingredients.append('mayonnaise')
+                elif depluralize(c_ingre) == 'cacao':
+                    not_healthy_ingredients.append('chocolate')
+                elif depluralize(c_ingre) == 'almond':
+                    not_healthy_ingredients.append('crouton')
+                elif depluralize(c_ingre) == 'spinach' or depluralize(string) == 'aragula' or depluralize(string) == 'cabbage':
+                    not_healthy_ingredients.append('lettuce')
+                elif depluralize(c_ingre) == 'oil' or depluralize(c_ingre) == 'butter':
+                    not_healthy_ingredients.append('lard')
+                elif found_sour_cream and (depluralize(c_ingre) == 'yogurt' or depluralize(c_ingre) == 'yoghurt'):
+                    not_healthy_ingredients.append('cream')                    
+                else:
+                    not_healthy_ingredients.append(c_ingre)
+
+        instruction['ingredients'] = not_healthy_ingredients
+        transformed_instruction.append(instruction)
+
+    return transformed_instruction,ingredient_objects 
 
 '''
 ingredient string generator:
