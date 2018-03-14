@@ -460,7 +460,7 @@ def custom_transform( ingredient_objects, instruction_objects,title = "placehold
             ingredient['quantity'] = str(convert_to_number(ingredient['quantity']) * 1.5)
     
     # First determine if sweet or savory
-    -if is_savory and (not is_sweet or (savory_amt >= sweet_amt)):   # savory case
+    if is_savory and (not is_sweet or (savory_amt >= sweet_amt)):   # savory case
         return 1
     else:
         return 2
