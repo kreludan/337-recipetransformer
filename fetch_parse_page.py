@@ -407,7 +407,8 @@ Changes to the cooking?
 ---Not sure if this should be included as a preparation in the instructions, or not, though......
 '''
 def custom_transform( ingredient_objects, instruction_objects,title = "placeholder",):
-    banned = ['cow', 'beef', 'steak', 'filet', 'mignon', 'brisket']   #  गाय हमारी माता हे !!!! don't eat cows
+    banned = ['cow', 'beef', 'steak', 'filet', 'mignon', 'brisket', 'pork']   #  गाय हमारी माता हे !!!! don't eat cows; also pork
+    to_modify = ['hotdog', 'ribs']
     ingredients = copy.deepcopy(ingredient_objects)
     
     is_savory = False
@@ -426,18 +427,22 @@ def custom_transform( ingredient_objects, instruction_objects,title = "placehold
         
         for banned_word in banned:          #  replaces cow with lamb... will probably need to refine this, huh 
             if banned_word in ingredient['name']:  #  update w/ pork too? 
-                ingredient['name'] = 'lamb'
-                
+                ingredient['name'] = ['lamb']
+        
+        for mod_word in to_modify:
+            if mod_word in ingredient['name']:  #  gotta qualify the ingredient as being a lamb replacement
+                ingredient['descriptor'] = ['lamb']
+
         if 'oil' in ingredient['name'] and 'salad' not in title:   # people be putting olive oil in their salads, huh...
-            ingredient['name'] = 'oil'
-            ingredient['descriptor'] = 'mustard'
+            ingredient['name'] = ['oil']
+            ingredient['descriptor'] = ['mustard']
             is_cooked = True
         if 'salt' in ingredient['name'] or 'pepper' in ingredient['name']:
             is_savory = True
             savory_amt = savory_amt + convert_to_number(ingredient['quantity'])
             savory_measurement = ingredient['measurement']
         if 'sugar' in ingredient['name']:
-            ingredient['descriptor'] = 'brown'
+            ingredient['descriptor'] = ['brown']
             banned_sugar = ['refined', 'powdered']
             to_delete = []
             for i in range(0, len(ingredient['preparation'])):
@@ -458,18 +463,54 @@ def custom_transform( ingredient_objects, instruction_objects,title = "placehold
         if ('chili' in ingredient['name'] or 'chilies' in ingredient['name']) and 'green' in ingredient['descriptor']:
             has_greenchilies = True
             ingredient['quantity'] = str(convert_to_number(ingredient['quantity']) * 1.5)
+        if 'lettuce' in ingredient['name']:
+            ingredient['name'] = 'cabbage'
     
     # First determine if sweet or savory
+
     if is_savory and (not is_sweet or (savory_amt >= sweet_amt)):   # savory case
-        return 1
-    else:
-        return 2
-    ###### TO COMPLETE #####
-        
-            
-        
+        if is_cooked:
+            spice_amounts = str(savory_amt / 2)
+            base_string = spice_amounts + ' ' + savory_measurement + ' '
+            south_indian_spices = ['ginger paste', 'garlic paste', 'cumin powder', 'turmeric powder', 'red chili powder', 'coriander powder'] ## NOTE THAT SHOULD SEARCH FOR THESE IN THE RECIPE FIRST, SO NO DOUBLE-INGRED.
+            for spice in south_indian_spices:
+                ingredients.append(parse_ingredient(base_string + spice))
+        else:
+            south_indian_leaves = ['coriander leaves', 'mint leaves']
+            ingredients.append(parse_ingredient('2 teaspoons cumin seeds'))
+            for leaf in south_indian_leaves:
+                ingredients.append(parse_ingredient('2 tablespoons ' + leaf))
+
+        if not has_tomatoes:
+            ingredients.append(parse_ingredient('2 diced tomatoes'))
+        if not has_onions:
+            ingredients.append(parse_ingredient('2 diced onions'))
+        if not has_greenchilies:
+            ingredients.append(parse_ingredient('2 diced green chilies'))
+
+    else:  #  sweet case
+        sweet_amounts = str(sweet_amt / 2)
+        base_string = sweet_amounts + ' ' + sweet_measurement + ' '
+        south_indian_sweets = ['crushed pistachios', 'saffron']
+        for sweet in south_indian_sweets:
+            ingredients.append(parse_ingredient(base_string + sweet))
     
-    
+    instructions = copy.deepcopy(instruction_objects)
+
+    for instruction in instructions:
+        for ingredient in instruction['ingredients']:  # Update ingredients; both replacements, and add new ones if necessary to certain steps
+            ## EXPLICIT INGREDIENT RE-NAMING
+            for banned_word in banned:
+                if banned_word in ingredient:
+                    ingredient = 'lamb'
+                    break
+            for mod_word in to_modify:
+                if mod_word in ingredient:
+                    ingredient = 'lamb ' + ingredient
+                    break
+
+    return 1
+    ###### TO COMPLETE ####    
 
 def convert_to_number(quantity):  # converts quantity field of ingredient object to an actual number
     total_amount = 0
