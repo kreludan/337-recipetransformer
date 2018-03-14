@@ -987,6 +987,16 @@ def generate_ingredient_string(ing):
         return str(convert_to_number(ing['quantity'])) + " " + ing_string
 
 
+def genrate_output_steps(instructions_objects):
+    for i in range(len(instructions_objects)):
+        print ("step "+str(i+1))
+        print ("ingredients: "+' '.join(instructions_objects[i]['ingredients']))
+        all_tools = list(set(instructions_objects[i]["parsed_tools"] + instructions_objects[i]["inferred_tools"])) 
+        print ("tools: "+' '.join(all_tools))
+        all_methods = list(set(instructions_objects[i]['parsed_methods'] + instructions_objects[i]["inferred_methods"]))
+        print ("cooking methods: "+' '.join(all_methods))
+        print ('primary cooking methods: ' + ' '.join(instructions_objects[i]['primary_method']))
+        print ('other cooking methods: ' + ' '.join(instructions_objects[i]['other_method']) + '\n')
 if __name__ == '__main__':
     url = input("Enter a URL from AllRecipes.com, to transform:")
     all_strings = fetch_page(url)
