@@ -57,7 +57,8 @@ from nltk.stem.porter import *
 # set_url = "https://www.allrecipes.com/recipe/234534/beef-and-guinness-stew/?internalSource=hub%20recipe&referringContentType=search%20results&clickId=cardslot%202"
 # set_url = 'https://www.allrecipes.com/recipe/220128/chef-johns-buttermilk-fried-chicken/?internalSource=staff%20pick&referringId=650&referringContentType=recipe%20hub'
 # set_url ='https://www.allrecipes.com/recipe/16669/fried-chicken-tenders/?internalSource=staff%20pick&referringId=650&referringContentType=recipe%20hub'
-set_url = 'https://www.allrecipes.com/recipe/8970/millie-pasquinellis-fried-chicken/?internalSource=hub%20recipe&referringId=650&referringContentType=recipe%20hub'
+# set_url = 'https://www.allrecipes.com/recipe/8970/millie-pasquinellis-fried-chicken/?internalSource=hub%20recipe&referringId=650&referringContentType=recipe%20hub'
+set_url = "https://www.allrecipes.com/recipe/8778/cajun-chicken-pasta/?internalSource=staff%20pick&referringId=1981&referringContentType=recipe%20hub"
 def fetch_page(link):
     with urllib.request.urlopen(link) as url:
         s = url.read()
@@ -100,7 +101,7 @@ def parts_fix(tuples):
     VBD_corrections = ['ground']
     VB_corrections = ['combine', 'coat', 'cook', 'stir', 'drain', 'toss', 'serve', 'place', 'brush', 'beat', 'bake',
                       'mix', 'cut', 'baste', 'grill', 'thread', 'roast','stewing','stew','boil','grill', 'arrange', 'fry',
-                      'heat']
+                      'heat','saute']
     NN_corrections = ['garlic']  #  really not sure why this one's an issue...
     #  was thinking of puting some stuff like 'extra' / 'to taste' as numbers, but what about like... 'extra-virgin olive oil'
     #  something to consider, I guess
@@ -143,7 +144,7 @@ def parts_fix(tuples):
 def parse_ingredient(description):
     ing_data = {'name': [], 'quantity': [], 'measurement': [], 'descriptor': [], 'preparation': []}
     tokens = word_tokenize(description)
-    ingredient_banned_words = ['piec','fri']
+    ingredient_banned_words = ['piec','fri','bake','boil','grill', 'thread', 'roast','stewing','stew','grill']
     #  Stuff in parentheses gets auto-chosen as a descriptor
     text = deparenthesize(tokens)[0]
     ing_data['descriptor'] = deparenthesize(tokens)[1]
@@ -272,14 +273,16 @@ def parse_tools(instruction):
 def parse_methods(instruction, ingredients):
     # keeping a list of banned words
     banned_words = ['be', 'is', 'set']
-    list_of_methods = ['roast','stewing','stew','boil','grill','fry']
+    list_of_methods = ['combine', 'coat', 'cook', 'stir', 'drain', 'toss', 'serve', 'place', 'brush', 'beat', 'bake',
+                      'mix', 'cut', 'baste', 'grill', 'thread', 'roast','stewing','stew','boil','grill', 'arrange', 'fry',
+                      'heat','saute']
     lowercase = instruction.lower()
     tokens = word_tokenize(lowercase)
     parts_tuples = pos_tag(tokens)
     parts = parts_fix(parts_tuples)
     found_methods = []
     for part in parts:
-        if 'VB' == part[1] and part[0] not in ingredients and part[0] not in banned_words:
+        if 'VB' == part[1] and part[0] not in ingredients and part[0] in list_of_methods:
             found_methods.append(part[0])
         # This part was added because I found some of the method are recognized as NN ——YW
         if 'NN' == part[1] and part[0] in list_of_methods:
@@ -361,6 +364,9 @@ def find_instruction_ingredients(instruction, all_ingredients):
                 ingredients_list.append(token)
                 break
     return list(set(ingredients_list))
+
+def find_primary_cooking_method(all_methods):
+    p_cooking_method = []
 
 '''
 CUSTOM TRANSFORM:
