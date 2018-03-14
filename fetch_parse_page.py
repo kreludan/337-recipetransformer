@@ -678,7 +678,7 @@ def depluralize(ingredient):
     else:
         return ingredient
 
-def non_heal_to_heal(all_instructions,all_methods):
+def non_heal_to_heal(ingredient_objects, instruction_objects):
     """
     Substitutes to consider:
         Rice -> Quinoa                  (150% more fiber and protein for same serving)
@@ -694,9 +694,73 @@ def non_heal_to_heal(all_instructions,all_methods):
         Eggs -> egg whites              (will typically need 2x as much eggs to get the same portion size)
                                         (lower cholestrol basically)
         lettuce -> spinach/arugula
-        butter -> 1/2 canola oil, 1/2 unsweetened applesauce
+        butter/oil -> 1/2 canola oil, 1/2 unsweetened applesauce
 
+        Instruction object layout for reference
+        instruction_object = {'ingredients': [], 'parsed_tools': [], 'inferred_tools': [], 'parsed_methods': [], 'inferred_methods': [],
+        'primary_method':[],'other_method':[]}
     """
+    transformed_instruction = []
+
+    found_sour_cream = False
+    #transfer the ingredients list
+    for c_ingre in ingredient_objects:
+        n = c_ingre['name']
+        desc = c_ingre['descriptor']
+        for i,string in enumerate(n, 0):
+            string = string.lower()
+            if depluralize(string) == 'cream' and 'sour' in desc:
+                c_ingre['name'][i] = 'yogurt'
+                map(lambda x:x if x != 'sour' else 'greek',c_ingre['descriptor'])
+            elif depluralize(string) == 'cheese':
+                c_ingre['descriptor'].append('low-fat')
+            elif depluralize(string) == 'peanut':
+                c_ingre['name'][i] = 'almond'
+                # in general should be healthier, so can replace peanuts with almonds in general
+            elif depluralize(string) == 'flour':
+                c_ingre['name'] = ['coconut', 'flour']
+            elif depluralize(string) == 'lettuce':
+                c_ingre['name'] = ['spinach']
+
+
+    healthy_ingredients = []
+    instruction_object_copy = copy.deepcopy(instruction_objects)
+    #loop over all intructions
+    for instruction in instruction_object_copy:
+        c_ingredients = instruction['ingredients']
+        if c_ingredients:
+            for c_ingre in c_ingredients:
+                c_ingre = c_ingre.lower()
+                if depluralize(c_ingre) == 'rice':
+                    healthy_ingredients.append('quinoa')
+                elif depluralize(c_ingre) == 'mayo' or depluralize(c_ingre) == 'mayonnaise':
+                    healthy_ingredients.append('mustard')
+                elif depluralize(c_ingre) == 'chocolate':
+                    healthy_ingredients.append('cacao')
+                elif depluralize(c_ingre) == 'crouton' or depluralize(c_ingre) == 'peanut':
+                    healthy_ingredients.append('almond')
+                elif depluralize(c_ingre) == 'lettuce':
+                    healthy_ingredients.append('spinach')
+                elif found_sour_cream and depluralize(c_ingre) == 'cream':
+                    healthy_ingredients.append('yogurt')
+                else:
+                    healthy_ingredients.append(c_ingre)
+
+                #elif depluralize(c_ingre) == 'sour':
+                #    healthy_ingredients.append('greek')
+                #elif depluralize(c_ingre) == 'cream':
+                #    if healthy_ingredients[-1] == 'greek':
+                #        healthy_ingredients.append('yogurt')
+                #    else:
+                #        healthy_ingredients.append(c_ingre)
+
+        instruction['ingredients'] = full_ingre
+        transformed_instruction.append(instruction)
+
+    return transformed_instruction,ingredient_objects
+
+def heal_to_non_heal(ingredient_objects, instruction_objects):
+
     pass
 
 '''
