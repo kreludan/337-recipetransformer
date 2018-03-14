@@ -669,7 +669,9 @@ def vege_to_non_vege(ingredient_objects, instruction_objects):
     return transformed_instruction,ingredient_objects
 
 def depluralize(ingredient):
-    if ingredient[-3:] == 'ies':
+    if ingredient == 'cheeses':
+        return 'cheese'
+    elif if ingredient[-3:] == 'ies':
         return ingredient[:-3] + 'y'
     elif ingredient[-2:] == 'es':
         return ingredient[:-2]
