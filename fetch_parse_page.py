@@ -1003,7 +1003,7 @@ def print_original_info(title, ing_strings, dir_strings):
 def generate_output_steps(instructions_objects):
     for i in range(len(instructions_objects)-1):
         print ("Step "+str(i+1))
-        print (("Ingredients: "+', '.join(instructions_objects[i]['ingredients'])))
+        print (("Ingredients: "+' '.join(instructions_objects[i]['ingredients'])))
         all_tools = list(set(instructions_objects[i]["parsed_tools"] + instructions_objects[i]["inferred_tools"])) 
         print (("Tools: "+', '.join(all_tools)))
         print (('Primary cooking methods: ' + ', '.join(instructions_objects[i]['primary_method'])))
