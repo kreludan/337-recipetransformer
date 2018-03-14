@@ -460,16 +460,58 @@ def custom_transform( ingredient_objects, instruction_objects,title = "placehold
             ingredient['quantity'] = str(convert_to_number(ingredient['quantity']) * 1.5)
     
     # First determine if sweet or savory
-    if is_savory and (not is_sweet or (savory_amt >= sweet_amt)):   # savory case
+    -if is_savory and (not is_sweet or (savory_amt >= sweet_amt)):   # savory case
         return 1
     else:
         return 2
     ###### TO COMPLETE #####
         
             
-        
-    
-    
+   
+
+
+
+
+'''
+Second Custom Style Tranformation:
+Recipe -> Italian Recipe
+
+1. Want to detect if a recipe is already italian
+	-Return the same recipe
+2. Replace rice with pasta/risotto as necessary
+3. Generally all types of protein can stay, could have a catch for some various specific meats and 
+replace with 'Italian Sausage'
+4. Oil used should almost always use olive oil
+5. If cheese is used, could change into a three cheese medley 
+6. Eliminate (and replace) foreign spices
+	-Foreign spice list = 'Cajun Seasoning', 'Creole Seasoning', 'Cumin', 'Cayenne', 'Curry', 'Saffron', ' Cilantro', 'Taco Seasoning' 
+	-Italian spice list = 'Basil', 'Bayleaves', 'Sage', 'Rosemary', 'Marjoram' 'Garlic', 'Onion', 'Oregano', 'Parsley', 'Thyme'
+7. Eliminate (and replace) foreign sauces
+	-Foreign sauce list = 'Ponzu', 'Hoisin', 'Soy', 'Sweet and Sour', 'Teriyaki', 'Sriracha', 'Barbecue'
+	-Italian sauce list = 'Pesto', 'Alfredo', 'Marinara', 'Vodka (Sauce)', 'Tomato (Sauce)', 'Meat-Based Sauces', 'Neapolitan'
+8. Savory dishes to consider
+	-Soups -> Italian Soup
+	-Anything with a Tortilla -> Pizza
+9. Sweet dishes to consider 
+	-
+
+'''     
+
+def italian_transform(ingredient_objects, instruction_objects,title = "placeholder",):
+
+	foreign_spices = ['Cajun Seasoning', 'Creole Seasoning', 'Cumin', 'Cayenne', 'Curry', 'Saffron', ' Cilantro', 'Taco Seasoning']  
+	foreign_sauces = ['Ponzu', 'Hoisin', 'Soy', 'Sweet and Sour', 'Teriyaki', 'Sriracha', 'Barbecue']
+	foreign_proteins = []
+
+	ingredients = copy.deepcopy(ingredient_objects)
+
+	#ingredients change
+	for ingredient in ingredients:
+	
+	#instructions change
+
+	return 1
+
 
 def convert_to_number(quantity):  # converts quantity field of ingredient object to an actual number
     total_amount = 0
