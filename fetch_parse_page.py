@@ -143,7 +143,7 @@ def parts_fix(tuples):
 def parse_ingredient(description):
     ing_data = {'name': [], 'quantity': [], 'measurement': [], 'descriptor': [], 'preparation': []}
     tokens = word_tokenize(description)
-    
+    ingredient_banned_words = ['piec','fri']
     #  Stuff in parentheses gets auto-chosen as a descriptor
     text = deparenthesize(tokens)[0]
     ing_data['descriptor'] = deparenthesize(tokens)[1]
@@ -178,7 +178,9 @@ def parse_ingredient(description):
                 ing_data['descriptor'].append(parts[i+1][0])
                 i = i + 1
         elif parts[i][1] == 'NN' or parts[i][1] == 'NNS' or parts[i][1] == 'NNP' or parts[i][1] == 'VBG':
-            ing_data['name'].append(parts[i][0])
+            single_ingre = plural_to_single([parts[i][0]])[0]
+            if single_ingre not in ingredient_banned_words:
+                ing_data['name'].append(single_ingre)
         i = i + 1
     return ing_data
 
@@ -205,17 +207,16 @@ def remove_tool_as_verb(tools):      # if we have 'grill' and 'grilling', keep '
             elif tools[j] == tools[i] + 'ing':
                 tools[j] = tools[i]
 
-# def standrize(input_list):
-#     stemmer = PorterStemmer()
-#     singles = [stemmer.stem(item) for item in input_list]
-#     return singles
+def plural_to_single(input_list):
+    stemmer = PorterStemmer()
+    singles = [stemmer.stem(item) for item in input_list]
+    return singles
 
 def full_ingredients_list(ingredients):
     all_ingredients = []
     for ingredient in ingredients:
 
         all_ingredients = all_ingredients + ingredient['name']
-    # all_ingredients = standrize(all_ingredients)
     return all_ingredients
 
 def infer_tools(instruction):
@@ -382,7 +383,7 @@ Changes to the cooking?
 ---If cooking is involved, then generally you should sear the vegetables before doing anything else with them
 ---Not sure if this should be included as a preparation in the instructions, or not, though......
 '''
-def custom_transform(title = "placeholder", ingredient_objects, instruction_objects):
+def custom_transform( ingredient_objects, instruction_objects,title = "placeholder",):
     banned = ['cow', 'beef', 'steak', 'filet', 'mignon', 'brisket']   #  गाय हमारी माता हे !!!! don't eat cows
     ingredients = copy.deepcopy(ingredient_objects)
     
@@ -699,6 +700,7 @@ if __name__ == '__main__':
     ingredients_objects = find_ingredients_objects(ing_strings)
     print(ingredients_objects)
     all_ingredients = full_ingredients_list(ingredients_objects)
+    print (all_ingredients)
     print("Finding all tools list:")
     all_tools = full_tools_list(dir_strings)
     print(all_tools)
