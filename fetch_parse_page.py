@@ -723,12 +723,23 @@ def non_heal_to_heal(ingredient_objects, instruction_objects):
                 c_ingre['name'] = ['coconut', 'flour']
             elif depluralize(string) == 'lettuce':
                 c_ingre['name'] = ['spinach']
+            elif depluralize(string) in ['sugar', 'salt']:
+                val = convert_to_number(c_ingre['quantity'])
+                val = val / 2
+                # just half the level of salt and level of sugar
+                c_ingre['quantity'] = ['{0}'.format(val)]
+            elif depluralize(string) == 'butter' or depluralize(string) == 'oil':
+                # Change fat type and decrease it by 25%
+                c_ingre['name'] = ['oil']
+                c_ingre['descriptor'] = ['extra-virgin', 'olive']
+                val = convert_to_number(c_ingre['quantity'])
+                val = (val*3)/4
+                c_ingre['quantity'] = ['{0}'.format(val)]
 
-
-    healthy_ingredients = []
     instruction_object_copy = copy.deepcopy(instruction_objects)
     #loop over all intructions
     for instruction in instruction_object_copy:
+        healthy_ingredients = []
         c_ingredients = instruction['ingredients']
         if c_ingredients:
             for c_ingre in c_ingredients:
@@ -744,7 +755,7 @@ def non_heal_to_heal(ingredient_objects, instruction_objects):
                 elif depluralize(c_ingre) == 'lettuce':
                     healthy_ingredients.append('spinach')
                 elif found_sour_cream and depluralize(c_ingre) == 'cream':
-                    healthy_ingredients.append('yogurt')
+                    healthy_ingredients.append('yogurt')                    
                 else:
                     healthy_ingredients.append(c_ingre)
 
@@ -756,14 +767,82 @@ def non_heal_to_heal(ingredient_objects, instruction_objects):
                 #    else:
                 #        healthy_ingredients.append(c_ingre)
 
-        instruction['ingredients'] = full_ingre
+        instruction['ingredients'] = healthy_ingredients
         transformed_instruction.append(instruction)
 
     return transformed_instruction,ingredient_objects
 
 def heal_to_non_heal(ingredient_objects, instruction_objects):
+    transformed_instruction = []
 
-    pass
+    found_sour_cream = False
+    #transfer the ingredients list
+    for c_ingre in ingredient_objects:
+        n = c_ingre['name']
+        desc = c_ingre['descriptor']
+        for i,string in enumerate(n, 0):
+            string = string.lower()
+            if depluralize(string) == 'yogurt' or depluralize(string) == 'yoghurt':
+                c_ingre['name'] = ['cream']
+                c_ingre['descriptor'] = ['sour']
+            elif depluralize(string) == 'cheese':
+                map(lambda x:x if x != 'low-fat' else 'full-fat',c_ingre['descriptor'])
+                if not 'full-fat' in c_ingre['descriptor']:
+                    c_ingre['descriptor'].append('full-fat')
+            elif depluralize(string) == 'almond':
+                c_ingre['name'][i] = 'peanut'
+                # in general should be healthier, so can replace peanuts with almonds in general
+            elif depluralize(string) == 'rice' or depluralize(string) == 'quinoa':
+                c_ingre['name'][i] = 'rice'
+                c_ingre['descriptor'] = ['processed']
+            elif depluralize(string) == 'flour':
+                c_ingre['name'] = ['flour']
+                c_ingre['descriptor'] = ['white']
+            elif depluralize(string) == 'spinach' or depluralize(string) == 'aragula' or depluralize(string) == 'cabbage':
+                c_ingre['name'] = ['lettuce']
+                c_ingre['descriptor'] = ['romaine']
+            elif depluralize(string) in ['sugar', 'salt']:
+                val = convert_to_number(c_ingre['quantity'])
+                val = val * 2
+                # just half the level of salt and level of sugar
+                c_ingre['quantity'] = ['{0}'.format(val)]
+            elif depluralize(string) == 'butter' or depluralize(string) == 'oil':
+                # Change fat type and increase it by 25%
+                c_ingre['name'] = ['lard']
+                c_ingre['descriptor'] = []
+                val = convert_to_number(c_ingre['quantity'])
+                val = (val*4)/3
+                c_ingre['quantity'] = ['{0}'.format(val)]
+
+    instruction_object_copy = copy.deepcopy(instruction_objects)
+    #loop over all intructions
+    for instruction in instruction_object_copy:
+        not_healthy_ingredients = []
+        c_ingredients = instruction['ingredients']
+        if c_ingredients:
+            for c_ingre in c_ingredients:
+                c_ingre = c_ingre.lower()
+                if depluralize(c_ingre) == 'quinoa':
+                    not_healthy_ingredients.append('rice')
+                elif depluralize(c_ingre) == 'mustard':
+                    not_healthy_ingredients.append('mayonnaise')
+                elif depluralize(c_ingre) == 'cacao':
+                    not_healthy_ingredients.append('chocolate')
+                elif depluralize(c_ingre) == 'almond':
+                    not_healthy_ingredients.append('crouton')
+                elif depluralize(c_ingre) == 'spinach' or depluralize(string) == 'aragula' or depluralize(string) == 'cabbage':
+                    not_healthy_ingredients.append('lettuce')
+                elif depluralize(c_ingre) == 'oil' or depluralize(c_ingre) == 'butter':
+                    not_healthy_ingredients.append('lard')
+                elif found_sour_cream and (depluralize(c_ingre) == 'yogurt' or depluralize(c_ingre) == 'yoghurt'):
+                    not_healthy_ingredients.append('cream')                    
+                else:
+                    not_healthy_ingredients.append(c_ingre)
+
+        instruction['ingredients'] = not_healthy_ingredients
+        transformed_instruction.append(instruction)
+
+    return transformed_instruction,ingredient_objects 
 
 '''
 ingredient string generator:
