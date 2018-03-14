@@ -576,6 +576,68 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
 
     return transformed_instruction,ingredient_objects
 
+def vege_to_non_vege(ingredient_objects, instruction_objects):
+    #    ingredients_objects = find_ingredients_objects(ing_strings)
+    #   all_ingredients = full_ingredients_list(ingredients_objects)
+    # Replace tofu with beef
+    # Replace tempeh with pork
+    # Replace lettuce/spinach with baconnnnnn
+    # if nothing replaced, go ahead and add some crumbled up bacon strips
+    
+    #     ing_data = {'name': [], 'quantity': [], 'measurement': [], 'descriptor': [], 'preparation': []}
+
+    transformed_instruction = []
+    instruction_object_copy = copy.deepcopy(instruction_objects)
+    #loop over all intructions
+    for instruction in instruction_object_copy:
+        prev_ingredient = ''
+        full_ingre = []
+        meat_ingre = []
+        c_ingredients = instruction['ingredients']
+        if c_ingredients:
+            for c_ingre in c_ingredients:
+                c_ingre = c_ingre.lower()
+                if depluralize(c_ingre) == 'tofu':
+                    meat_ingre.append('beef')
+                    full_ingre.append('beef')
+                elif depluralize(c_ingre) == 'tempeh':
+                    meat_ingre.append('pork')
+                    full_ingre.append('pork')
+                elif depluralize(c_ingre) == 'lettuce' or depluralize(c_ingre) == 'spinach':
+                    meat_ingre.append('bacon')
+                    full_ingre.append('bacon')
+                else:
+                    full_ingre.append(c_ingre)
+
+            if not meat_ingre:
+                full_ingre.append('bacon')
+
+
+        instruction['ingredients'] = full_ingre
+        transformed_instruction.append(instruction)
+    #transfer the ingredients list
+    for c_ingre in ingredient_objects:
+        n = c_ingre['name']
+        desc = c_ingre['descriptor']
+        for i,string in enumerate(n, 0):
+            string = string.lower()
+
+            if depluralize(string) == 'tofu':
+                c_ingre['name'][i] = 'beef'
+                c_ingre['descriptor'] = []
+            elif depluralize(string) == 'tempeh':
+                c_ingre['name'][i] = 'pork'
+                c_ingre['descriptor'] = []
+            elif depluralize(string) == 'lettuce' or depluralize(c_ingre) == 'spinach':
+                c_ingre['name'][i] = 'bacon'
+                c_ingre['descriptor'] = []
+
+    # if we never replace things, go ahead and add bacon bits to it
+    # because bacon goes well with 'everything'
+
+
+    return transformed_instruction,ingredient_objects
+
 def depluralize(ingredient):
     if ingredient[-3:] == 'ies':
         return ingredient[:-3] + 'y'
