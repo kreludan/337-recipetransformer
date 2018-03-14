@@ -94,6 +94,7 @@ def parts_fix(tuples):
     #  Keeping a running list of types of measurements; seems like a reasonable way to resolve it
     measurements = ['cup', 'dash', 'can', 'pack', 'pint', 'teaspoon', 'tablespoon', 'pound', 'ounce', 'pinch', 
                     'clove', 'stalk', 'slices', 'inch']
+    measurement_bans = ['canola']
     time_units = ['second', 'minute', 'hour']
 
     #  Corrections for the NLTK part-of-speech tagger; can just update this while testing on various recipes
@@ -119,7 +120,9 @@ def parts_fix(tuples):
         for u in time_units:
             if u in t[0]:
                 is_timeunit = True
-                break     
+                break    
+        if t[0] in measurement_bans:
+            is_measurement = False
         if is_measurement == True:
             parts.append([t[0], 'MEASUREMENT'])
         elif is_timeunit == True:
@@ -179,7 +182,7 @@ def parse_ingredient(description):
                 ing_data['descriptor'].append(parts[i+1][0])
                 i = i + 1
         elif parts[i][1] == 'NN' or parts[i][1] == 'NNS' or parts[i][1] == 'NNP' or parts[i][1] == 'VBG':
-            single_ingre = plural_to_single([parts[i][0]])[0]
+            single_ingre = depluralize([parts[i][0]])[0]
             if single_ingre not in ingredient_banned_words:
                 ing_data['name'].append(single_ingre)
         i = i + 1
@@ -207,11 +210,6 @@ def remove_tool_as_verb(tools):      # if we have 'grill' and 'grilling', keep '
                 tools[i] = tools[j]
             elif tools[j] == tools[i] + 'ing':
                 tools[j] = tools[i]
-
-def plural_to_single(input_list):
-    stemmer = PorterStemmer()
-    singles = [stemmer.stem(item) for item in input_list]
-    return singles
 
 def full_ingredients_list(ingredients):
     all_ingredients = []
@@ -406,7 +404,7 @@ Changes to the cooking?
 ---If cooking is involved, then generally you should sear the vegetables before doing anything else with them
 ---Not sure if this should be included as a preparation in the instructions, or not, though......
 '''
-def custom_transform( ingredient_objects, instruction_objects,title = "placeholder",):
+def custom_transform(ingredient_objects, instruction_objects, title = "placeholder"):
     banned = ['cow', 'beef', 'steak', 'filet', 'mignon', 'brisket', 'pork']   #  गाय हमारी माता हे !!!! don't eat cows; also pork
     to_modify = ['hotdog', 'ribs']
     ingredients = copy.deepcopy(ingredient_objects)
@@ -465,18 +463,24 @@ def custom_transform( ingredient_objects, instruction_objects,title = "placehold
             ingredient['quantity'] = str(convert_to_number(ingredient['quantity']) * 1.5)
         if 'lettuce' in ingredient['name']:
             ingredient['name'] = 'cabbage'
+        # sauce / seasoning changes
+        for name in ingredient['name']:
+            if 'ponzu' == name:
+                name == 'chili'
+                break
+            if 'hoisin' == name:
+                name == 'tamarind'
+                break
+            if ('soy' == name or 'soya' == name) and 'sauce' in ingredient['name']:
+                name == 'sriracha'
+                break
+            if 'barbecue' == name:
+                name == 'indian barbecue'
+            if 'cajun' == name:
+                name == 'indian'
+    # Determine whether or not savory, for ingredient additions
     
-    # First determine if sweet or savory
-
     if is_savory and (not is_sweet or (savory_amt >= sweet_amt)):   # savory case
-        return 1
-    else:
-        return 2
-    ###### TO COMPLETE #####
-        
-            
-
-
         if is_cooked:
             spice_amounts = str(savory_amt / 2)
             base_string = spice_amounts + ' ' + savory_measurement + ' '
@@ -504,21 +508,58 @@ def custom_transform( ingredient_objects, instruction_objects,title = "placehold
             ingredients.append(parse_ingredient(base_string + sweet))
     
     instructions = copy.deepcopy(instruction_objects)
-
+    
+    first_vessel_instruction = "temp"
+    
     for instruction in instructions:
-        for ingredient in instruction['ingredients']:  # Update ingredients; both replacements, and add new ones if necessary to certain steps
-            ## EXPLICIT INGREDIENT RE-NAMING
+        if first_vessel_instruction == "temp":
+            potential_vessels = ['pot', 'pan', 'bowl', 'cooker', 'oven']
+            for tool in instruction['parsed_tools']:
+                if tool in potential_vessels:
+                    first_vessel_instruction = instruction
+                    break
+                
+        ingredient_list = instruction['ingredients']
+        for i in range(0, len(ingredient_list)):
             for banned_word in banned:
-                if banned_word in ingredient:
-                    ingredient = 'lamb'
+                if banned_word in ingredient_list[i]:
+                    ingredient_list[i] = 'lamb'
                     break
             for mod_word in to_modify:
-                if mod_word in ingredient:
-                    ingredient = 'lamb ' + ingredient
+                if mod_word in ingredient_list[i]:
+                    ingredient_list[i] = 'lamb ' + ingredient_list[i]
                     break
+            oil_types = ['sunflower', 'canola', 'olive', 'avocado', 'palm', 'bran', 'safflower', 'seed']
+            if ingredient_list[i] in oil_types and i < len(ingredient_list) and ingredient_list[i+1] == 'oil':
+                ingredient_list[i] = 'mustard'
+            if 'lettuce' in ingredient_list[i]:
+                ingredient_list[i] = 'cabbage'
+            if 'ponzu' in ingredient_list[i]:
+                ingredient_list[i] = 'chili'
+            if 'hoisin' in ingredient_list[i]:
+                ingredient_list[i] = 'tamarind'
+            if 'soy' in ingredient_list[i] and i < len(ingredient_list) and ingredient_list[i+1] == 'sauce':
+                ingredient_list[i] = 'sriracha'
+            if 'barbecue' in ingredient_list[i]:
+                ingredient_list[i] = 'indian barbecue'
+            if 'cajun' in ingredient_list[i]:
+                ingredient_list[i] = 'indian seasoning'
+            if is_savory and (not is_sweet or (savory_amt >= sweet_amt)):
+                if is_cooked:
+                    if ingredient_list[i] == 'salt':
+                        ingredient_list[i] = ['salt', 'ginger paste', 'garlic paste', 'cumin powder', 'turmeric powder',
+                                       'red chili powder', 'coriander powder']
+                else:
+                    if ingredient_list[i] == 'cabbage':
+                        ingredient_list[i] = ['cabbage', 'coriander leaves', 'mint leaves', 'cumin seeds']
+            else:
+                if ingredient_list[i] == 'sugar':
+                    ingredient_list[i] = ['brown sugar', 'pistachios', 'saffron']
 
-    return 1
-    ###### TO COMPLETE ####    
+    print(ingredients)
+    print(instructions)
+
+
 
 def convert_to_number(quantity):  # converts quantity field of ingredient object to an actual number
     total_amount = 0
@@ -752,22 +793,12 @@ def italian_transform(ingredient_objects, instruction_objects,title = "placehold
 
 	ingredients = copy.deepcopy(ingredient_objects)
 
-	#ingredients change
-	for ingredient in ingredients:
-	
-	#instructions change
-
-	return 1
-
-
-
-
 
 
 def depluralize(ingredient):
     if ingredient == 'cheeses':
         return 'cheese'
-    elif if ingredient[-3:] == 'ies':
+    elif ingredient[-3:] == 'ies':
         return ingredient[:-3] + 'y'
     elif ingredient[-2:] == 'es':
         return ingredient[:-2]
@@ -989,8 +1020,8 @@ if __name__ == '__main__':
 
     #print(all_ingredients)
 
-    all_transformed_ingredients = full_ingredients_list(transformed_ingredients)
-    print(transformed_ingredients)
+    #all_transformed_ingredients = full_ingredients_list(transformed_ingredients)
+    #print(transformed_ingredients)
     #print(all_transformed_ingredients)
 
 
