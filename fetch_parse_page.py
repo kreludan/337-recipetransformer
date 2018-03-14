@@ -50,6 +50,7 @@ import urllib.request
 from nltk import pos_tag, word_tokenize
 import copy
 import string
+import sys
 from nltk.stem.porter import *
 #   For now, the URL has to be manually changed here
 #   Ideally by the end we'll have some walkthrough / user input interface which will be nicer
@@ -494,11 +495,11 @@ def custom_transform(ingredient_objects, instruction_objects, title = "placehold
                 ingredients.append(parse_ingredient('2 tablespoons ' + leaf))
 
         if not has_tomatoes:
-            ingredients.append(parse_ingredient('2 diced tomatoes'))
+            ingredients = ingredients + parse_ingredient('2 diced tomatoes')
         if not has_onions:
-            ingredients.append(parse_ingredient('2 diced onions'))
+            ingredients = ingredients + parse_ingredient('2 diced onions')
         if not has_greenchilies:
-            ingredients.append(parse_ingredient('2 diced green chilies'))
+            ingredients = ingredients + parse_ingredient('2 diced green chilies')
 
     else:  #  sweet case
         sweet_amounts = str(sweet_amt / 2)
@@ -971,16 +972,11 @@ def heal_to_non_heal(ingredient_objects, instruction_objects):
 
     return transformed_instruction,ingredient_objects 
 
-'''
-ingredient string generator:
-inputs a (modified) ingredient object, outputs a transformed ingredient string
-'''
 def generate_ingredient_string(ing):
     special_case = False
-    ing_fields = [ing['quantity'], str(convert_to_number(ing['measurement'])), ing['descriptor'], ing['preparation'], ing['name']]
+    ing_fields = [ing['measurement'], ing['descriptor'], ing['preparation'], ing['name']]
     if ing['measurement'] == ['to', 'taste']:
         special_case = True
-        ing_fields = [ing['quantity'], ing['descriptor'], ing['preparation'], ing['name']]
     temp = []
     for field in ing_fields:
         temp.append("".join([" "+i if not i.startswith("'") and i not in string.punctuation else i for i in field]).strip())
@@ -988,11 +984,12 @@ def generate_ingredient_string(ing):
     if special_case:
         return ing_string + ", to taste"
     else:
-        return ing_string
+        return str(convert_to_number(ing['quantity'])) + " " + ing_string
 
 
 if __name__ == '__main__':
-    all_strings = fetch_page(set_url)
+    url = input("Enter a URL from AllRecipes.com, to transform:")
+    all_strings = fetch_page(url)
     ing_strings = all_strings[0]
     dir_strings = all_strings[1]
     title = all_strings[2]
@@ -1012,11 +1009,12 @@ if __name__ == '__main__':
     print(all_methods_class)
     print("Creating instruction object for each instruction:")
     instructions_objects = assemble_instruction_objects(dir_strings, all_ingredients)
+    
     transformed_instructions,transformed_ingredients = non_vege_to_vege(ingredients_objects,instructions_objects)
     for i in range(0, len(dir_strings)):
         print(dir_strings[i])
-        #print(instructions_objects[i])
-        print(transformed_instructions[i])
+        print(instructions_objects[i])
+        #print(transformed_instructions[i])
 
     #print(all_ingredients)
 
