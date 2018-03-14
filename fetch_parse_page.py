@@ -994,22 +994,22 @@ if __name__ == '__main__':
     dir_strings = all_strings[1]
     title = all_strings[2]
     print("Recipe title: " + title)
-    print("Finding ingredients objects:")    
+    print("Listing all the ingredients:")    
     ingredients_objects = find_ingredients_objects(ing_strings)
     print(ingredients_objects)
     all_ingredients = full_ingredients_list(ingredients_objects)
-    print (all_ingredients)
-    print("Finding all tools list:")
+    print("Listing all tools:")
     all_tools = full_tools_list(dir_strings)
     print(all_tools)
-    print("Finding all methods list:")
+    print("Listing all methods:")
     all_methods = full_methods_list(dir_strings, all_ingredients)
     print(all_methods)
     all_methods_class= find_primary_cooking_method(all_methods['parsed_methods']+all_methods['inferred_methods'])
     print(all_methods_class)
-    print("Creating instruction object for each instruction:")
     instructions_objects = assemble_instruction_objects(dir_strings, all_ingredients)
-    
+    print ('Listing the cooking steps:')
+    print("Creating instruction object for each instruction:")    
+    genrate_output_steps(instructions_objects)
     transformed_instructions,transformed_ingredients = non_vege_to_vege(ingredients_objects,instructions_objects)
     for i in range(0, len(dir_strings)):
         print(dir_strings[i])
