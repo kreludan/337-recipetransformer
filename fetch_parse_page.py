@@ -630,6 +630,9 @@ def vege_to_non_vege(ingredient_objects, instruction_objects):
                 elif depluralize(c_ingre) == 'lettuce' or depluralize(c_ingre) == 'spinach':
                     meat_ingre.append('bacon')
                     full_ingre.append('bacon')
+                elif depluralize(c_ingre) == 'broccoli' or depluralize(c_ingre) == 'eggplant' or depluralize(c_ingre) == 'mushroom':
+                    meat_ingre.append('chicken')
+                    full_ingre.append('chicken')
                 else:
                     full_ingre.append(c_ingre)
 
@@ -654,6 +657,9 @@ def vege_to_non_vege(ingredient_objects, instruction_objects):
                 c_ingre['descriptor'] = []
             elif depluralize(string) == 'lettuce' or depluralize(c_ingre) == 'spinach':
                 c_ingre['name'][i] = 'bacon'
+                c_ingre['descriptor'] = []
+            elif depluralize(c_ingre) == 'broccoli' or depluralize(c_ingre) == 'eggplant' or depluralize(c_ingre) == 'mushroom':
+                c_ingre['name'][i] = 'chicken'
                 c_ingre['descriptor'] = []
 
     # if we never replace things, go ahead and add bacon bits to it
