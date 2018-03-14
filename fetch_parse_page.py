@@ -227,7 +227,7 @@ def infer_tools(instruction):
 def infer_tools_helper(tokens):
     #dictionary of inferred tools to tool
     inferred_tools = {'stirring spoon': ['mix', 'stir'], 'strainer': ['drain', 'strain'], 'knife': ['cut', 'chop', 'dice', 'mince'],
-                      'refrigerator': ['chill', 'refrigerate'], 'sifter': ['sift']}
+                      'refrigerator': ['chill', 'refrigerate'], 'sifter': ['sift'], 'grater': ['grate', 'grated']}
 
 
     result_tools = []
@@ -244,7 +244,7 @@ def parse_tools(instruction):
     banned_words = ['potato', 'pinch', 'scraping']
     
     #  doing this the old way seemed to not be so great; so I think I'll just keep a running list of tool words instead
-    tool_words = ['pan', 'skillet', 'pot', 'sheet', 'grate', 'whisk', 'spoon', 'cutter', 'board', 'oven', 'bowl', 'bag',
+    tool_words = ['pan', 'skillet', 'pot', 'sheet', 'grater', 'whisk', 'spoon', 'cutter', 'board', 'oven', 'bowl', 'bag',
                   'towel', 'pin', 'knife', 'masher', 'skewer', 'refrigerator', 'freezer', 'grill', 'ladle', 'pour', 'simmer']
     
     lowercase = instruction.lower()
@@ -986,40 +986,98 @@ def generate_ingredient_string(ing):
     else:
         return str(convert_to_number(ing['quantity'])) + " " + ing_string
 
+def print_original_info(title, ing_strings, dir_strings):
+    title_tokens = word_tokenize(title)
+    cutoff_index = -1
+    for i in range(0, len(title_tokens)):
+        if title_tokens[i] == "Recipe":
+            cutoff_index = i
+            break
+    real_title = title_tokens[:cutoff_index]
+    print("Recipe title: " + " ".join(real_title))
+    print("Ingredients:")
+    print(ing_strings)
+    print("Instructions:")
+    print(dir_strings)
 
-def genrate_output_steps(instructions_objects):
-    for i in range(len(instructions_objects)):
-        print ("step "+str(i+1))
-        print ("ingredients: "+' '.join(instructions_objects[i]['ingredients']))
+def generate_output_steps(instructions_objects):
+    for i in range(len(instructions_objects)-1):
+        print ("Step "+str(i+1))
+        print (("Ingredients: "+', '.join(instructions_objects[i]['ingredients'])))
         all_tools = list(set(instructions_objects[i]["parsed_tools"] + instructions_objects[i]["inferred_tools"])) 
-        print ("tools: "+' '.join(all_tools))
-        all_methods = list(set(instructions_objects[i]['parsed_methods'] + instructions_objects[i]["inferred_methods"]))
-        print ("cooking methods: "+' '.join(all_methods))
-        print ('primary cooking methods: ' + ' '.join(instructions_objects[i]['primary_method']))
-        print ('other cooking methods: ' + ' '.join(instructions_objects[i]['other_method']) + '\n')
+        print (("Tools: "+', '.join(all_tools)))
+        print (('Primary cooking methods: ' + ', '.join(instructions_objects[i]['primary_method'])))
+        print (('Other cooking methods: ' + ', '.join(instructions_objects[i]['other_method'])) + '\n')
+
 if __name__ == '__main__':
     url = input("Enter a URL from AllRecipes.com, to transform:")
     all_strings = fetch_page(url)
     ing_strings = all_strings[0]
     dir_strings = all_strings[1]
     title = all_strings[2]
-    print("Recipe title: " + title)
-    print("Listing all the ingredients:")    
     ingredients_objects = find_ingredients_objects(ing_strings)
-    print(ingredients_objects)
     all_ingredients = full_ingredients_list(ingredients_objects)
-    print("Listing all tools:")
     all_tools = full_tools_list(dir_strings)
+    all_methods = full_methods_list(dir_strings, all_ingredients)
+    all_methods_class= find_primary_cooking_method(all_methods['parsed_methods']+all_methods['inferred_methods'])
+    instructions_objects = assemble_instruction_objects(dir_strings, all_ingredients)
+    print("You can do several actions; press...")
+    print("[1] To view the title, original ingredients, and original instructions of the recipe.")
+    print("[2] To view our parsed representations of the ingredients and instructions of this recipe")
+    print("[3] To view our list of methods and tools, as well as our inferred main method for the recipe.")
+    print("[4] To view our [non-vegetarian to vegetarian] transform of this recipe.")
+    print("[5] To view our [vegetarian to non-vegetarian] transform of this recipe.")
+    print("[6] To view our [non-healthy to healthy] transform of this recipe.")
+    print("[7] To view our [healthy to non-healthy] transform of this recipe.")
+    print("[8] To view our [custom; South Asian] transform of this recipe.")
+    instruction = input("Enter a number corresponding to the instruction you would like:")
+    if instruction == "1":
+        print_original_info(title, ing_strings, dir_strings)
+    elif instruction == "2":
+        print("Parsed ingredient representations:")
+        print(ingredients_objects)
+        print("Parsed instruction representations:")
+        print(instructions_objects)
+    elif instruction == "3":
+        print("List of tools:")
+        print(all_tools)
+        print("List of methods:")
+        print(all_methods)
+        print("Inferred main methods:")
+        print(all_methods_class)
+    elif instruction == "4":
+        print("Non-vegetarian to vegetarian transform:")
+        vege_instructions, vege_ingredients = non_vege_to_vege(ingredients_objects, instructions_objects)
+        print("New Ingredients:")
+        for vege_ingredient in vege_ingredients:
+            print(generate_ingredient_string(vege_ingredient))
+        print("New Instructions:")
+        generate_output_steps(vege_instructions)
+    elif instruction == "5":
+        print("5")
+    elif instruction == "6":
+        print("6")
+    else:
+        print("7")
+    
+    
+    '''
+    print("Recipe title: " + title)
+    print("Finding ingredients objects:")    
+    print(ingredients_objects)
+    
+    print (all_ingredients)
+    print("Finding all tools list:")
+    
     print(all_tools)
-    print("Listing all methods:")
+    print("Finding all methods list:")
     all_methods = full_methods_list(dir_strings, all_ingredients)
     print(all_methods)
     all_methods_class= find_primary_cooking_method(all_methods['parsed_methods']+all_methods['inferred_methods'])
     print(all_methods_class)
+    print("Creating instruction object for each instruction:")
     instructions_objects = assemble_instruction_objects(dir_strings, all_ingredients)
-    print ('Listing the cooking steps:')
-    print("Creating instruction object for each instruction:")    
-    genrate_output_steps(instructions_objects)
+    
     transformed_instructions,transformed_ingredients = non_vege_to_vege(ingredients_objects,instructions_objects)
     for i in range(0, len(dir_strings)):
         print(dir_strings[i])
@@ -1031,12 +1089,8 @@ if __name__ == '__main__':
     #all_transformed_ingredients = full_ingredients_list(transformed_ingredients)
     #print(transformed_ingredients)
     #print(all_transformed_ingredients)
+    '''
 
-
-    
-    
-    
-    
     
     
     
