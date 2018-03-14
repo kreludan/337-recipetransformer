@@ -496,12 +496,12 @@ def custom_transform( ingredient_objects, instruction_objects,title = "placehold
         if not has_greenchilies:
             ingredients.append(parse_ingredient('2 diced green chilies'))
 
-    else:  #  sweet case
-        sweet_amounts = str(sweet_amt / 2)
-        base_string = sweet_amounts + ' ' + sweet_measurement + ' '
-        south_indian_sweets = ['crushed pistachios', 'saffron']
-        for sweet in south_indian_sweets:
-            ingredients.append(parse_ingredient(base_string + sweet))
+        else:  #  sweet case
+            sweet_amounts = str(sweet_amt / 2)
+            base_string = sweet_amounts + ' ' + sweet_measurement + ' '
+            south_indian_sweets = ['crushed pistachios', 'saffron']
+            for sweet in south_indian_sweets:
+                ingredients.append(parse_ingredient(base_string + sweet))
     
     instructions = copy.deepcopy(instruction_objects)
 
@@ -752,12 +752,12 @@ def italian_transform(ingredient_objects, instruction_objects,title = "placehold
 
 	ingredients = copy.deepcopy(ingredient_objects)
 
-	#ingredients change
-	for ingredient in ingredients:
+	# #ingredients change
+	# for ingredient in ingredients:
 	
-	#instructions change
+	# #instructions change
 
-	return 1
+	# return 1
 
 
 
@@ -767,7 +767,7 @@ def italian_transform(ingredient_objects, instruction_objects,title = "placehold
 def depluralize(ingredient):
     if ingredient == 'cheeses':
         return 'cheese'
-    elif if ingredient[-3:] == 'ies':
+    elif ingredient[-3:] == 'ies':
         return ingredient[:-3] + 'y'
     elif ingredient[-2:] == 'es':
         return ingredient[:-2]
