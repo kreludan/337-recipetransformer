@@ -101,7 +101,7 @@ def parts_fix(tuples):
     VBD_corrections = ['ground']
     VB_corrections = ['combine', 'coat', 'cook', 'stir', 'drain', 'toss', 'serve', 'place', 'brush', 'beat', 'bake',
                       'mix', 'cut', 'baste', 'grill', 'thread', 'roast','stewing','stew','boil','grill', 'arrange', 'fry',
-                      'heat','saute']
+                      'heat','saute','steam']
     NN_corrections = ['garlic']  #  really not sure why this one's an issue...
     #  was thinking of puting some stuff like 'extra' / 'to taste' as numbers, but what about like... 'extra-virgin olive oil'
     #  something to consider, I guess
@@ -275,7 +275,7 @@ def parse_methods(instruction, ingredients):
     banned_words = ['be', 'is', 'set']
     list_of_methods = ['combine', 'coat', 'cook', 'stir', 'drain', 'toss', 'serve', 'place', 'brush', 'beat', 'bake',
                       'mix', 'cut', 'baste', 'grill', 'thread', 'roast','stewing','stew','boil','grill', 'arrange', 'fry',
-                      'heat','saute']
+                      'heat','saute','steam']
     lowercase = instruction.lower()
     tokens = word_tokenize(lowercase)
     parts_tuples = pos_tag(tokens)
@@ -342,7 +342,8 @@ def assemble_instruction_objects(dir_strings, all_ingredients):
     methods_list = []
     inferred_methods  = []
     for dir_string in dir_strings:
-        instruction_object = {'ingredients': [], 'parsed_tools': [], 'inferred_tools': [], 'parsed_methods': [], 'inferred_methods': []}
+        instruction_object = {'ingredients': [], 'parsed_tools': [], 'inferred_tools': [], 'parsed_methods': [], 'inferred_methods': [],
+        'primary_method':[],'other_method':[]}
         instruction_object['ingredients'] = list(set(find_instruction_ingredients(dir_string, all_ingredients)))
         instruction_object['parsed_tools'] = list(set(parse_tools(dir_string)))
         instruction_object['inferred_tools'] = list(set(infer_tools(dir_string)))
@@ -351,6 +352,10 @@ def assemble_instruction_objects(dir_strings, all_ingredients):
         methods_list = methods_list + instruction_object['parsed_methods']
         potentially_inferred = list(set(infer_methods(methods_list, tools_list)))
         instruction_object['inferred_methods'] = [method for method in potentially_inferred if method not in inferred_methods]
+        classified_method = find_primary_cooking_method(instruction_object['inferred_methods']+instruction_object['parsed_methods'] )
+        instruction_object['primary_method'] = classified_method['primary_method']
+        instruction_object['other_method'] = classified_method['other_method']
+
         inferred_methods = inferred_methods + instruction_object['inferred_methods']
         instruction_objects.append(instruction_object)
     return instruction_objects
@@ -366,7 +371,19 @@ def find_instruction_ingredients(instruction, all_ingredients):
     return list(set(ingredients_list))
 
 def find_primary_cooking_method(all_methods):
-    p_cooking_method = []
+    primary_cooking_method = ['bake','steam','grill','roast','boil','stew','fry','saute',
+    'poach','broil']
+    primary_cooking = []
+    other_cooking = []
+    method = {'primary_method':[],'other_method':[]}
+    for me in all_methods:
+        if me in primary_cooking_method:
+            primary_cooking.append(me)
+        else:
+            other_cooking.append(me)
+    method['primary_method'] = list(set(primary_cooking))
+    method['other_method'] = list(set(other_cooking))
+    return method
 
 '''
 CUSTOM TRANSFORM:
@@ -713,6 +730,8 @@ if __name__ == '__main__':
     print("Finding all methods list:")
     all_methods = full_methods_list(dir_strings, all_ingredients)
     print(all_methods)
+    all_methods_class= find_primary_cooking_method(all_methods['parsed_methods']+all_methods['inferred_methods'])
+    print(all_methods_class)
     print("Creating instruction object for each instruction:")
     instructions_objects = assemble_instruction_objects(dir_strings, all_ingredients)
     transformed_instructions,transformed_ingredients = non_vege_to_vege(ingredients_objects,instructions_objects)
