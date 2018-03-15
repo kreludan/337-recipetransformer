@@ -231,12 +231,11 @@ def infer_tools_helper(tokens):
   
 def parse_tools(instruction):
     #  banning some words that slip through the cracks
-    banned_words = ['potato', 'pinch', 'scraping', 'pink']
+    banned_words = ['potato', 'pinch', 'scraping', 'pink', 'simmer']
     
     #  doing this the old way seemed to not be so great; so I think I'll just keep a running list of tool words instead
     tool_words = ['pan', 'skillet', 'pot', 'sheet', 'grater', 'whisk', 'spoon', 'cutter', 'board', 'oven', 'bowl', 'bag',
-                  'towel', 'pin', 'knife', 'masher', 'skewer', 'refrigerator', 'freezer', 'grill', 'ladle', 'pour', 'simmer',
-                  'plate']
+                  'towel', 'pin', 'knife', 'masher', 'skewer', 'refrigerator', 'freezer', 'grill', 'ladle', 'plate']
     
     lowercase = instruction.lower()
     #  since we're just searching for words, we shouldn't need part-of-word information, just tokens
@@ -265,7 +264,7 @@ def parse_methods(instruction, ingredients):
     banned_words = ['be', 'is', 'set', 'heat']
     list_of_methods = ['combine', 'coat', 'cook', 'stir', 'drain', 'toss', 'serve', 'place', 'brush', 'beat', 'bake',
                       'mix', 'cut', 'baste', 'grill', 'thread', 'roast','stewing','stew','boil','grill', 'arrange', 'fry',
-                      'saute','steam', 'add', 'mix']
+                      'saute','steam', 'add', 'mix', 'simmer', 'pour']
     lowercase = instruction.lower()
     tokens = word_tokenize(lowercase)
     parts_tuples = pos_tag(tokens)
@@ -594,7 +593,7 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
             'goat', 'ham', 'horse', 'kangaroo', 'lamb', 'moose', 'mutton', 'pork', 'bacon', 'rabbit',\
             'snake', 'squirrel', 'tripe', 'turtle', 'veal', 'venison', 'chicken', 'hen', 'duck', 'emu',\
             'gizzard', 'goose', 'ostrich', 'partridge', 'pheasant', 'quail', 'turkey', 'baloney', 'sausage', 'sausages',\
-            'spam']
+            'spam', 'meatloaf']
 
     fish = ['fish', 'salmon', 'trout', 'bass', 'catfish', 'shrimp', 'cod', 'pollock', 'tilapia', 'clam', 'clams'\
             'crab', 'oyster', 'oysters', 'flounder', 'lobster', 'yellowtail', 'sturgeon', 'octopus', 'squid', 'caviar'\
@@ -897,7 +896,6 @@ def italian_transform(ingredient_objects, instruction_objects):
 
 	return transformed_instruction, ingredient_objects
 
-
 def depluralize(ingredient):
     if ingredient == 'cheeses':
         return 'cheese'
@@ -1100,9 +1098,23 @@ def generate_ingredient_string(ing):
         temp.append("".join([" "+i if not i.startswith("'") and i not in string.punctuation else i for i in field]).strip())
     ing_string = "".join([" "+i if not i.startswith("'") and i not in string.punctuation else i for i in temp]).strip()
     if special_case:
-        return ing_string + ", to taste"
+        print(ing_string + ", to taste")
     else:
-        return str(ing['quantity'][0]) + " " + ing_string
+        if check_if_real(ing):
+            print(str(ing['quantity'][0]) + " " + ing_string)
+
+
+def check_if_real(ing):
+    # 4/5 threshold
+    num_blank = 0
+    fields = ['descriptor', 'measurement', 'name', 'preparation', 'quantity']
+    for field in fields:
+        if ing[field] == []:
+            num_blank = num_blank + 1
+    if num_blank < 4:
+        return True
+    else:
+        return False
 
 def print_original_info(title, ing_strings, dir_strings):
     title_tokens = word_tokenize(title)
@@ -1117,12 +1129,6 @@ def print_original_info(title, ing_strings, dir_strings):
     print(ing_strings)
     print("Instructions:")
     print(dir_strings)
-
-def sentence_tokenizer(all_steps):
-    split_sentences = []
-    for step in all_steps:
-       split_sentences += sent_tokenize(step)
-    return split_sentences
 
 def fetch_cooking_time(dir_string):
     time_units = ['seconds','minutes','hours']
@@ -1144,6 +1150,8 @@ def generate_output_steps(instructions_objects):
         instruction_step['step'] = i+1
         # if not instructions_objects[i]['ingredients']:
         instruction_step['ingredients']+= instructions_objects[i]['ingredients']
+        instruction_step['ingredients'] = list(set(instruction_step['ingredients']))
+        
         all_tools = list(set(instructions_objects[i]["parsed_tools"] + instructions_objects[i]["inferred_tools"])) 
         # print ("tools",all_tools)
         # if not all_tools:
@@ -1153,37 +1161,41 @@ def generate_output_steps(instructions_objects):
         # if not instructions_objects[i]['other_method']:
         instruction_step['other_methods'] += instructions_objects[i]['other_method']
         instruction_step['cooking_time'] += instructions_objects[i]['cooking_time']
+        instruction_step['ingredients'] = instruction_step['ingredients'][::-1]
         instruction_list.append(instruction_step)
 
     #merge if the ingredients in none
     valid_steps = [ins['step']-1 for ins in instruction_list if ins['ingredients']]
     empty_steps = [ins['step']-1 for ins in instruction_list if not ins['ingredients']]
-    merge_list = []
+    merge_list = {}
     for empty_step in empty_steps:
         difference = [abs(empty_step - valid_step)for valid_step in valid_steps]
         merge_target = valid_steps[difference.index(min(difference))]
-        merge_list.append((empty_step,merge_target))
+        merge_list[merge_target] = empty_step
     new_instruction_list = copy.deepcopy(instruction_list)
     merged_output = []
-    for i in range(len(merge_list)):
-        from_index = merge_list[i][0]
-        target_index = merge_list[i][1]
-        base_step = new_instruction_list[target_index]
-        base_step['step'] = i+1
-        base_step['primary_methods'] += new_instruction_list[from_index]['primary_methods']
-        base_step['other_methods'] += new_instruction_list[from_index]['other_methods']
-        base_step['tools'] += new_instruction_list[from_index]['tools']
+    for i in range(len(instruction_list)):
+        if i in empty_steps:
+            continue
+        if i not in merge_list:
+            merged_output.append(new_instruction_list[i])
+        else:
+            from_index = merge_list[i]
+            target_index = i
+            base_step = new_instruction_list[target_index]
+            base_step['step'] = i+1
+            base_step['primary_methods'] += new_instruction_list[from_index]['primary_methods']
+            base_step['other_methods'] += new_instruction_list[from_index]['other_methods']
+            base_step['tools'] += new_instruction_list[from_index]['tools']
 
-        base_step['primary_methods'] = list(set(base_step['primary_methods']))
-        base_step['other_methods'] = list(set(base_step['other_methods']))
-        base_step['tools'] = list(set(base_step['tools']))
+            base_step['primary_methods'] = list(set(base_step['primary_methods']))
+            base_step['other_methods'] = list(set(base_step['other_methods']))
+            base_step['tools'] = list(set(base_step['tools']))
 
-        if base_step not in merged_output:
-            merged_output.append(base_step)
-    
+            if base_step not in merged_output:
+                merged_output.append(base_step)
     for i in range(len(merged_output)):
         merged_output[i]['step'] = i+1
-    
     for merged_step in merged_output:
         print ("step: ",merged_step['step'])
         print ("ingredients: ",' '.join(merged_step['ingredients']))
@@ -1209,7 +1221,7 @@ if __name__ == '__main__':
     all_strings = fetch_page(url)
     ing_strings = all_strings[0]
     dir_strings = all_strings[1]
-    dir_strings  = sentence_tokenizer(dir_strings)
+    #dir_strings  = sentence_tokenizer(dir_strings)
 
     title = all_strings[2]
     ingredients_objects = find_ingredients_objects(ing_strings)
@@ -1235,8 +1247,13 @@ if __name__ == '__main__':
     elif instruction == "2":
         print("Parsed ingredient representations:")
         print(ingredients_objects)
+        print("Generated ingredient outputs:")
+        for ingredient in ingredients_objects:
+            print(generate_ingredient_string(ingredient))
         print("Parsed instruction representations:")
         print(instructions_objects)
+        print("Generated instruction outputs:")
+        generate_output_steps(instructions_objects)
     elif instruction == "3":
         print("List of tools:")
         print(all_tools)
@@ -1249,7 +1266,7 @@ if __name__ == '__main__':
         vege_instructions, vege_ingredients = non_vege_to_vege(ingredients_objects, instructions_objects)
         print("New Ingredients:" + '\n')
         for vege_ingredient in vege_ingredients:
-            print(generate_ingredient_string(vege_ingredient))
+            generate_ingredient_string(vege_ingredient)
         print('\n')
         print("New Instructions:" + '\n')
         generate_output_steps(vege_instructions)
@@ -1258,7 +1275,7 @@ if __name__ == '__main__':
         nonveg_instructions, nonveg_ingredients = vege_to_non_vege(ingredients_objects, instructions_objects)
         print("New Ingredients:" + '\n')
         for nonveg_ingredient in nonveg_ingredients:
-            print(generate_ingredient_string(vege_ingredient))
+            generate_ingredient_string(nonveg_ingredient)
         print('\n')
         print("New Instructions:" + '\n')
         generate_output_steps(nonveg_instructions)
@@ -1267,7 +1284,7 @@ if __name__ == '__main__':
         healthy_instructions, healthy_ingredients = non_heal_to_heal(ingredients_objects, instructions_objects)
         print("New Ingredients:" + '\n')
         for healthy_ingredient in healthy_ingredients:
-            print(generate_ingredient_string(healthy_ingredient))
+            generate_ingredient_string(healthy_ingredient)
         print('\n')
         print("New Instructions:" + '\n')
         generate_output_steps(healthy_instructions)
@@ -1276,7 +1293,7 @@ if __name__ == '__main__':
         nonhealthy_instructions, nonhealthy_ingredients = heal_to_non_heal(ingredients_objects, instructions_objects)
         print("New Ingredients:" + '\n')
         for nonhealthy_ingredient in nonhealthy_ingredients:
-            print(generate_ingredient_string(nonhealthy_ingredient))
+            generate_ingredient_string(nonhealthy_ingredient)
         print('\n')
         print("New Instructions:" + '\n')
         generate_output_steps(nonhealthy_instructions)
@@ -1285,7 +1302,7 @@ if __name__ == '__main__':
         sa_instructions, sa_ingredients = southasian_transform(ingredients_objects, instructions_objects)
         print("New Ingredients:" + '\n')
         for sa_ingredient in sa_ingredients:
-            print(generate_ingredient_string(sa_ingredient))
+            generate_ingredient_string(sa_ingredient)
         print('\n')
         print("New Instructions:" + '\n')
         generate_output_steps(sa_instructions)
@@ -1294,48 +1311,7 @@ if __name__ == '__main__':
         ita_instructions, ita_ingredients = italian_transform(ingredients_objects, instructions_objects)
         print("New Ingredients:" + '\n')
         for ita_ingredient in ita_ingredients:
-            print(generate_ingredient_string(ita_ingredient))
+            generate_ingredient_string(ita_ingredient)
         print('\n')
         print("New Instructions:" + '\n')
         generate_output_steps(ita_instructions)
-        
-
-    
-    '''
-    print("Recipe title: " + title)
-    print("Finding ingredients objects:")    
-    print(ingredients_objects)
-    
-    print (all_ingredients)
-    print("Finding all tools list:")
-    
-    print(all_tools)
-    print("Finding all methods list:")
-    all_methods = full_methods_list(dir_strings, all_ingredients)
-    print(all_methods)
-    all_methods_class= find_primary_cooking_method(all_methods['parsed_methods']+all_methods['inferred_methods'])
-    print(all_methods_class)
-    print("Creating instruction object for each instruction:")
-    instructions_objects = assemble_instruction_objects(dir_strings, all_ingredients)
-    
-    transformed_instructions,transformed_ingredients = non_vege_to_vege(ingredients_objects,instructions_objects)
-    for i in range(0, len(dir_strings)):
-        print(dir_strings[i])
-        print(instructions_objects[i])
-        #print(transformed_instructions[i])
-
-    #print(all_ingredients)
-
-    #all_transformed_ingredients = full_ingredients_list(transformed_ingredients)
-    #print(transformed_ingredients)
-    #print(all_transformed_ingredients)
-    '''
-
-    
-    
-    
-    
-    
-    
-    
-    
