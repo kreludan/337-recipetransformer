@@ -444,13 +444,13 @@ def southasian_transform(ingredient_objects, instruction_objects, title = "place
             sweet_measurement = ingredient['measurement']
         if 'tomato' in ingredient['name'] or 'tomatoes' in ingredient['name']:
             has_tomatoes = True
-            ingredient['quantity'] = str(convert_to_number(ingredient['quantity']) * 1.5)
+            ingredient['quantity'] = [str(convert_to_number(ingredient['quantity']) * 1.5)]
         if 'onion' in ingredient['name'] or 'onions' in ingredient['name']:
             has_onions = True
-            ingredient['quantity'] = str(convert_to_number(ingredient['quantity']) * 1.5)
+            ingredient['quantity'] = [str(convert_to_number(ingredient['quantity']) * 1.5)]
         if ('chili' in ingredient['name'] or 'chilies' in ingredient['name']) and 'green' in ingredient['descriptor']:
             has_greenchilies = True
-            ingredient['quantity'] = str(convert_to_number(ingredient['quantity']) * 1.5)
+            ingredient['quantity'] = [str(convert_to_number(ingredient['quantity']) * 1.5)]
         if 'lettuce' in ingredient['name']:
             ingredient['name'] = 'cabbage'
         # sauce / seasoning changes
@@ -1075,7 +1075,7 @@ def generate_ingredient_string(ing):
     if special_case:
         return ing_string + ", to taste"
     else:
-        return str(convert_to_number(ing['quantity'])) + " " + ing_string
+        return str(ing['quantity'][0]) + " " + ing_string
 
 def print_original_info(title, ing_strings, dir_strings):
     title_tokens = word_tokenize(title)
