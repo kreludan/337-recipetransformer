@@ -627,7 +627,7 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
                         vege_ingre.append('seitan')
                     elif depluralize(c_ingre) in fish or depluralize(c_ingre) == 'pork':
                         vege_ingre.append('tempeh')
-                    elif depluralize(c_ingre) in spec_organs:
+                    elif depluralize(c_ingre) in spec_organs_or_misc:
                         # get rid of first part of organ name (i.e., pig intestine, cow tongue, etc)
                         vege_ingre.pop()
                         vege_ingre.append('tofu')
