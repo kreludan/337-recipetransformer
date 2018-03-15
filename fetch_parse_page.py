@@ -581,7 +581,7 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
 
     fats = ['fat', 'lard']
 
-    banned = ['chuck', 'boneless', 'boneles', 'bonel', 'bone', 'breast', 'skinless']
+    banned = ['chuck', 'boneless', 'boneles', 'bonel', 'bone', 'breast', 'skinless', 'loin']
 
     # For things like heart, liver, tongue, stomach, intestines
     # only replace that particular buzz word, and ignore all the other parts of the name we
@@ -602,6 +602,7 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
     vege = 'tofu'
     
     transformed_instruction = []
+    new_ingredient_objects = []
     instruction_object_copy = copy.deepcopy(instruction_objects)
     #loop over all intructions
     for instruction in instruction_object_copy:
@@ -611,10 +612,11 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
         if c_ingredients:
             for c_ingre in c_ingredients:
                 c_ingre = c_ingre.lower()
+                print('c_ingre = [{0}]'.format(c_ingre))
                 if depluralize(c_ingre) in meats or depluralize(c_ingre) in fish:
                     if depluralize(c_ingre) in spec_replacements:
                         vege_ingre.append('seitan')
-                    elif depluralize(c_ingre) in fish or depluralize(c_ingre) == 'pork':
+                    elif depluralize(c_ingre) in fish or depluralize(c_ingre) == 'pork' or c_ingre == 'pork':
                         vege_ingre.append('tempeh')
                     elif depluralize(c_ingre) in spec_organs_or_misc:
                         # get rid of first part of organ name (i.e., pig intestine, cow tongue, etc)
@@ -641,17 +643,17 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
         prev_ingredient = ''
         for i,string in enumerate(n, 0):
             string = string.lower()
-
-            if depluralize(string) in meats or depluralize(string) in fish:
+            print('Receiving string: {0}'.format(string))
+            if depluralize(string) in meats or depluralize(string) in fish or (string in meats or string in fish):
                 # replace with relevant vegetable
                 if depluralize(string) in spec_replacements:
                     c_ingre['name'][i] = 'seitan'
-                elif depluralize(string) in fish or depluralize(string) == 'pork':
+                elif depluralize(string) in fish or depluralize(string) == 'pork' or string =='pork':
                     c_ingre['name'][i] = 'tempeh'
+                    print('SETTING TO TEMPEH')
                 elif depluralize(string) in spec_organs_or_misc:
                     c_ingre['name'][i] = 'tofu'
-                    c_ingre['name'].pop(i-1)
-                    i = i-1
+                    c_ingre['name'][i-1] = ''
                 else:
                     c_ingre['name'][i] = 'tofu'
 
@@ -661,7 +663,7 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
                     c_ingre['descriptor'] = ['sweet']
                 elif 'salty' in c_ingre['descriptor']:
                     c_ingre['descriptor'] = ['salty']
-                        
+
             elif depluralize(string) == 'egg':
                 if prev_ingredient == 'fish' or prev_ingredient in fish:
                     c_ingre['name'][i] = 'lentils'
@@ -672,15 +674,12 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
                     elif 'salty' in c_ingre['descriptor']:
                         c_ingre['descriptor'] = ['salty']
 
-                    c_ingre['name'].pop(i-1)
-                    i = i-1
+                    c_ingre['name'][i-1] = ''
             elif depluralize(string) in fats:
                 vege_ingre.append('butter')
                 c_ingre['name'][i] = 'butter'
             elif string in banned or string in banned:
                 c_ingre['name'][i] = ''
-                c_ingre['name'].pop(i)
-
 
             prev_ingredient = string
 
@@ -690,6 +689,8 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
                 c_ingre['descriptor'][i] = 'vegetable'
             elif string.lower() in banned:
                 c_ingre['descriptor'].pop(i)
+
+        c_ingre['name'] = [x for x in c_ingre['name'] if x != '']
 
 
     return transformed_instruction,ingredient_objects
