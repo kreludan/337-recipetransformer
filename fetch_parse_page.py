@@ -612,7 +612,7 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
         if c_ingredients:
             for c_ingre in c_ingredients:
                 c_ingre = c_ingre.lower()
-                print('c_ingre = [{0}]'.format(c_ingre))
+                # print('c_ingre = [{0}]'.format(c_ingre))
                 if depluralize(c_ingre) in meats or depluralize(c_ingre) in fish:
                     if depluralize(c_ingre) in spec_replacements:
                         vege_ingre.append('seitan')
@@ -643,14 +643,13 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
         prev_ingredient = ''
         for i,string in enumerate(n, 0):
             string = string.lower()
-            print('Receiving string: {0}'.format(string))
+            # print('Receiving string: {0}'.format(string))
             if depluralize(string) in meats or depluralize(string) in fish or (string in meats or string in fish):
                 # replace with relevant vegetable
                 if depluralize(string) in spec_replacements:
                     c_ingre['name'][i] = 'seitan'
                 elif depluralize(string) in fish or depluralize(string) == 'pork' or string =='pork':
                     c_ingre['name'][i] = 'tempeh'
-                    print('SETTING TO TEMPEH')
                 elif depluralize(string) in spec_organs_or_misc:
                     c_ingre['name'][i] = 'tofu'
                     c_ingre['name'][i-1] = ''
