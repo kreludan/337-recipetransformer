@@ -749,10 +749,10 @@ def vege_to_non_vege(ingredient_objects, instruction_objects):
             elif depluralize(string) == 'tempeh':
                 c_ingre['name'][i] = 'pork'
                 c_ingre['descriptor'] = []
-            elif depluralize(string) == 'lettuce' or depluralize(c_ingre) == 'spinach':
+            elif depluralize(string) == 'lettuce' or depluralize(string) == 'spinach':
                 c_ingre['name'][i] = 'bacon'
                 c_ingre['descriptor'] = []
-            elif depluralize(c_ingre) == 'broccoli' or depluralize(c_ingre) == 'eggplant' or depluralize(c_ingre) == 'mushroom':
+            elif depluralize(string) == 'broccoli' or depluralize(string) == 'eggplant' or depluralize(string) == 'mushroom':
                 c_ingre['name'][i] = 'chicken'
                 c_ingre['descriptor'] = []
 
