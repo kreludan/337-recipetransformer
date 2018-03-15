@@ -231,11 +231,12 @@ def infer_tools_helper(tokens):
   
 def parse_tools(instruction):
     #  banning some words that slip through the cracks
-    banned_words = ['potato', 'pinch', 'scraping']
+    banned_words = ['potato', 'pinch', 'scraping', 'pink']
     
     #  doing this the old way seemed to not be so great; so I think I'll just keep a running list of tool words instead
     tool_words = ['pan', 'skillet', 'pot', 'sheet', 'grater', 'whisk', 'spoon', 'cutter', 'board', 'oven', 'bowl', 'bag',
-                  'towel', 'pin', 'knife', 'masher', 'skewer', 'refrigerator', 'freezer', 'grill', 'ladle', 'pour', 'simmer']
+                  'towel', 'pin', 'knife', 'masher', 'skewer', 'refrigerator', 'freezer', 'grill', 'ladle', 'pour', 'simmer',
+                  'plate']
     
     lowercase = instruction.lower()
     #  since we're just searching for words, we shouldn't need part-of-word information, just tokens
@@ -261,10 +262,10 @@ def parse_tools(instruction):
 
 def parse_methods(instruction, ingredients):
     # keeping a list of banned words
-    banned_words = ['be', 'is', 'set']
+    banned_words = ['be', 'is', 'set', 'heat']
     list_of_methods = ['combine', 'coat', 'cook', 'stir', 'drain', 'toss', 'serve', 'place', 'brush', 'beat', 'bake',
                       'mix', 'cut', 'baste', 'grill', 'thread', 'roast','stewing','stew','boil','grill', 'arrange', 'fry',
-                      'heat','saute','steam']
+                      'saute','steam', 'add', 'mix']
     lowercase = instruction.lower()
     tokens = word_tokenize(lowercase)
     parts_tuples = pos_tag(tokens)
@@ -428,7 +429,8 @@ def southasian_transform(ingredient_objects, instruction_objects, title = "place
         if 'salt' in ingredient['name'] or 'pepper' in ingredient['name']:
             is_savory = True
             savory_amt = savory_amt + convert_to_number(ingredient['quantity'])
-            savory_measurement = ingredient['measurement']
+            if len(ingredient['measurement']) > 0:
+                savory_measurement = ingredient['measurement'][0]
         if 'sugar' in ingredient['name']:
             ingredient['descriptor'] = ['brown']
             banned_sugar = ['refined', 'powdered']
@@ -441,7 +443,8 @@ def southasian_transform(ingredient_objects, instruction_objects, title = "place
                     del ingredient['preparation'][index]
             is_sweet = True
             sweet_amt = sweet_amt + convert_to_number(ingredient['quantity'])
-            sweet_measurement = ingredient['measurement'][0]
+            if len(ingredient['measurement']) > 0:
+                sweet_measurement = ingredient['measurement'][0]
         if 'tomato' in ingredient['name'] or 'tomatoes' in ingredient['name']:
             has_tomatoes = True
             ingredient['quantity'] = [str(convert_to_number(ingredient['quantity']) * 1.5)]
@@ -1177,6 +1180,10 @@ def generate_output_steps(instructions_objects):
 
         if base_step not in merged_output:
             merged_output.append(base_step)
+    
+    for i in range(len(merged_output)):
+        merged_output[i]['step'] = i+1
+    
     for merged_step in merged_output:
         print ("step: ",merged_step['step'])
         print ("ingredients: ",' '.join(merged_step['ingredients']))
@@ -1238,52 +1245,58 @@ if __name__ == '__main__':
         print("Inferred main methods:")
         print(all_methods_class)
     elif instruction == "4":
-        print("Non-vegetarian to vegetarian transform:")
+        print("Non-vegetarian to vegetarian transform:" + '\n')
         vege_instructions, vege_ingredients = non_vege_to_vege(ingredients_objects, instructions_objects)
-        print("New Ingredients:")
+        print("New Ingredients:" + '\n')
         for vege_ingredient in vege_ingredients:
             print(generate_ingredient_string(vege_ingredient))
-        print("New Instructions:")
+        print('\n')
+        print("New Instructions:" + '\n')
         generate_output_steps(vege_instructions)
     elif instruction == "5":
         print("Vegetarian to non-vegetarian transform:")
         nonveg_instructions, nonveg_ingredients = vege_to_non_vege(ingredients_objects, instructions_objects)
-        print("New Ingredients:")
+        print("New Ingredients:" + '\n')
         for nonveg_ingredient in nonveg_ingredients:
             print(generate_ingredient_string(vege_ingredient))
-        print("New Instructions:")
+        print('\n')
+        print("New Instructions:" + '\n')
         generate_output_steps(nonveg_instructions)
     elif instruction == "6":
         print("Non-healthy to healthy transform:")
         healthy_instructions, healthy_ingredients = non_heal_to_heal(ingredients_objects, instructions_objects)
-        print("New Ingredients:")
+        print("New Ingredients:" + '\n')
         for healthy_ingredient in healthy_ingredients:
             print(generate_ingredient_string(healthy_ingredient))
-        print("New Instructions:")
+        print('\n')
+        print("New Instructions:" + '\n')
         generate_output_steps(healthy_instructions)
     elif instruction == "7":
         print("Healthy to non-healthy transform:")
         nonhealthy_instructions, nonhealthy_ingredients = heal_to_non_heal(ingredients_objects, instructions_objects)
-        print("New Ingredients:")
+        print("New Ingredients:" + '\n')
         for nonhealthy_ingredient in nonhealthy_ingredients:
             print(generate_ingredient_string(nonhealthy_ingredient))
-        print("New Instructions:")
+        print('\n')
+        print("New Instructions:" + '\n')
         generate_output_steps(nonhealthy_instructions)
     elif instruction == "8":
         print("South Asian transform:")
         sa_instructions, sa_ingredients = southasian_transform(ingredients_objects, instructions_objects)
-        print("New Ingredients:")
+        print("New Ingredients:" + '\n')
         for sa_ingredient in sa_ingredients:
             print(generate_ingredient_string(sa_ingredient))
-        print("New Instructions:")
+        print('\n')
+        print("New Instructions:" + '\n')
         generate_output_steps(sa_instructions)
     elif instruction == "9":
         print("Italian transform:")
         ita_instructions, ita_ingredients = italian_transform(ingredients_objects, instructions_objects)
-        print("New Ingredients:")
+        print("New Ingredients:" + '\n')
         for ita_ingredient in ita_ingredients:
             print(generate_ingredient_string(ita_ingredient))
-        print("New Instructions:")
+        print('\n')
+        print("New Instructions:" + '\n')
         generate_output_steps(ita_instructions)
         
 
