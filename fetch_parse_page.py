@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-@author: Vikram Kohli
 Ingredient parser testing; URLs used + issues encountered
 https://www.allrecipes.com/recipe/13076/bacon-and-potato-soup/
 Issues: no huge ones; used this recipe as a 'starting point' for making the parser
@@ -828,7 +827,7 @@ def italian_transform(ingredient_objects, instruction_objects):
 					ital_ingre.append('sausage')
 				elif depluralize(c_ingre) in oils:
 					ital_ingre.append('olive oil')
-				elif depluralize(c_ingre) == 'rice'
+				elif depluralize(c_ingre) == 'rice':
 					ital_ingre.append('risotto')
 
 				#eliminating foreign spices and sauces
@@ -1117,7 +1116,7 @@ def fetch_cooking_time(dir_string):
             else:
                 return str(scale)+' '+ time_unit
 
-def genrate_output_steps(instructions_objects):
+def generate_output_steps(instructions_objects):
     instruction_list = []
     for i in range(len(instructions_objects)):
         instruction_step = {"ingredients":[],"tools":[],"primary_methods":[],"other_methods":[],
@@ -1178,7 +1177,7 @@ if __name__ == '__main__':
     all_methods = full_methods_list(dir_strings, all_ingredients)
     all_methods_class= find_primary_cooking_method(all_methods['parsed_methods']+all_methods['inferred_methods'])
     instructions_objects = assemble_instruction_objects(dir_strings, all_ingredients)
-    genrate_output_steps(instructions_objects)
+    #genrate_output_steps(instructions_objects)
     print("You can do several actions; press...")
     print("[1] To view the title, original ingredients, and original instructions of the recipe.")
     print("[2] To view our parsed representations of the ingredients and instructions of this recipe")
@@ -1188,6 +1187,7 @@ if __name__ == '__main__':
     print("[6] To view our [non-healthy to healthy] transform of this recipe.")
     print("[7] To view our [healthy to non-healthy] transform of this recipe.")
     print("[8] To view our [custom; South Asian] transform of this recipe.")
+    print("[9] To view our [custom; Italian] transform of this recipe.")
     instruction = input("Enter a number corresponding to the instruction you would like: ")
     if instruction == "1":
         print_original_info(title, ing_strings, dir_strings)
@@ -1236,7 +1236,22 @@ if __name__ == '__main__':
         print("New Instructions:")
         generate_output_steps(nonhealthy_instructions)
     elif instruction == "8":
-        print("8")
+        print("South Asian transform:")
+        sa_instructions, sa_ingredients = southasian_transform(ingredients_objects, instructions_objects)
+        print("New Ingredients:")
+        for sa_ingredient in sa_ingredients:
+            print(generate_ingredient_string(sa_ingredient))
+        print("New Instructions:")
+        generate_output_steps(sa_instructions)
+    elif instruction == "9":
+        print("Italian transform:")
+        ita_instructions, ita_ingredients = italian_transform(ingredients_objects, instructions_objects)
+        print("New Ingredients:")
+        for ita_ingredient in ita_ingredients:
+            print(generate_ingredient_string(ita_ingredient))
+        print("New Instructions:")
+        generate_output_steps(ita_instructions)
+        
 
     
     '''
