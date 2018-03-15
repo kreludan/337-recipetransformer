@@ -1160,8 +1160,25 @@ def generate_output_steps(instructions_objects):
 
         if base_step not in merged_output:
             merged_output.append(base_step)
-    for ins in merged_output:
-        print (ins)
+    for merged_step in merged_output:
+        print ("step: ",merged_step['step'])
+        print ("ingredients: ",' '.join(merged_step['ingredients']))
+        if merged_step['tools']:
+            print ("tools: ", ' '.join(merged_step['tools']))
+        else:
+            print ("tools: None")
+        if merged_step['primary_methods']:
+            print ("primary cooking method: ", ' '.join(merged_step['primary_methods']))
+        else:
+            print ("primary cooking method: None")
+        if merged_step['other_methods']:
+            print ("other cooking method: ", ' '.join(merged_step['other_methods']))
+        else:
+            print("other cooking method: None")
+        if merged_step['cooking_time'][0]:
+            print ("cooking time: ", ' '.join(merged_step['cooking_time']) + '\n')
+        else:
+            print ("cooking time: None" + '\n')
 
 if __name__ == '__main__':
     url = input("Enter a URL from AllRecipes.com, to transform: ")
