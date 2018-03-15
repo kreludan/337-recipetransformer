@@ -917,6 +917,7 @@ def non_heal_to_heal(ingredient_objects, instruction_objects):
                                         (lower cholestrol basically)
         lettuce -> spinach/arugula
         butter/oil -> 1/2 canola oil, 1/2 unsweetened applesauce
+
         Instruction object layout for reference
         instruction_object = {'ingredients': [], 'parsed_tools': [], 'inferred_tools': [], 'parsed_methods': [], 'inferred_methods': [],
         'primary_method':[],'other_method':[]}
@@ -947,13 +948,25 @@ def non_heal_to_heal(ingredient_objects, instruction_objects):
                 val = val / 2
                 # just half the level of salt and level of sugar
                 c_ingre['quantity'] = ['{0}'.format(val)]
-            elif depluralize(string) == 'butter' or depluralize(string) == 'oil':
+            elif depluralize(string) == 'chocolate':
+                val = convert_to_number(c_ingre['quantity'])
+                val = (val * 3)/4
+                c_ingre['name'][i] = 'cacao'
+            elif (depluralize(string) == 'butter' or depluralize(string) == 'oil')\
+            and not ('almond' in c_ingre['name'] or 'peanut' in c_ingre['name'])\
+            and not ('almond' in c_ingre['descriptor'] or 'peanut' in c_ingre['descriptor']):
                 # Change fat type and decrease it by 25%
                 c_ingre['name'] = ['oil']
                 c_ingre['descriptor'] = ['extra-virgin', 'olive']
                 val = convert_to_number(c_ingre['quantity'])
                 val = (val*3)/4
                 c_ingre['quantity'] = ['{0}'.format(val)]
+            elif 'peanut' in c_ingre['descriptor']:
+                map(lambda x:x if x != 'peanut' else 'almond', c_ingre['descriptor'])
+
+        if 'chocolate' in c_ingre['descriptor']:
+            map(lambda x:x if x != 'chocolate' else 'cacao', c_ingre['descriptor'])
+
 
     instruction_object_copy = copy.deepcopy(instruction_objects)
     #loop over all intructions
@@ -1025,13 +1038,17 @@ def heal_to_non_heal(ingredient_objects, instruction_objects):
                 val = val * 2
                 # just half the level of salt and level of sugar
                 c_ingre['quantity'] = ['{0}'.format(val)]
-            elif depluralize(string) == 'butter' or depluralize(string) == 'oil':
+            elif (depluralize(string) == 'butter' or depluralize(string) == 'oil')\
+            and not ('almond' in c_ingre['name'] or 'peanut' in c_ingre['name'])\
+            and not ('almond' in c_ingre['descriptor'] or 'peanut' in c_ingre['descriptor']):
                 # Change fat type and increase it by 25%
                 c_ingre['name'] = ['lard']
                 c_ingre['descriptor'] = []
                 val = convert_to_number(c_ingre['quantity'])
                 val = (val*4)/3
                 c_ingre['quantity'] = ['{0}'.format(val)]
+            elif 'almond' in c_ingre['descriptor']:
+                map(lambda x:x if x != 'almond' else 'peanut', c_ingre['descriptor'])
 
     instruction_object_copy = copy.deepcopy(instruction_objects)
     #loop over all intructions
