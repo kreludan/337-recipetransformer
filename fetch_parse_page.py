@@ -1000,20 +1000,56 @@ def print_original_info(title, ing_strings, dir_strings):
     print("Instructions:")
     print(dir_strings)
 
-def generate_output_steps(instructions_objects):
-    for i in range(len(instructions_objects)-1):
-        print ("Step "+str(i+1))
-        print (("Ingredients: "+' '.join(instructions_objects[i]['ingredients'])))
+def sentence_tokenizer(all_steps):
+    split_sentences = []
+    for step in all_steps:
+        split_sentences += sent_tokenize(step)
+    return split_sentences
+
+def fetch_cooking_time(dir_string):
+    time_units = ['seconds','minutes','hours']
+    words = word_tokenize(dir_string)
+    for time_unit in time_units:
+        if time_unit in words:
+            scale = words[words.index(time_unit)-1]
+            if words[words.index(time_unit)-2] == 'to':
+                scale_2 = words[words.index(time_unit)-3]
+                return str(scale_2) + ' to ' + str(scale) + ' ' +time_unit
+            else:
+                return str(scale)+' '+ time_unit
+def genrate_output_steps(instructions_objects):
+    for i in range(len(instructions_objects)):
+        print ("step "+str(i+1))
+        if not instructions_objects[i]['ingredients']:
+            print ("ingredients: None")
+        else:
+            print ("ingredients: "+' '.join(instructions_objects[i]['ingredients']))
         all_tools = list(set(instructions_objects[i]["parsed_tools"] + instructions_objects[i]["inferred_tools"])) 
-        print (("Tools: "+', '.join(all_tools)))
-        print (('Primary cooking methods: ' + ', '.join(instructions_objects[i]['primary_method'])))
-        print (('Other cooking methods: ' + ', '.join(instructions_objects[i]['other_method'])) + '\n')
+        if not all_tools:
+            print ("tools: None")
+        else:
+            print ("tools: "+' '.join(all_tools))
+        all_methods = list(set(instructions_objects[i]['parsed_methods'] + instructions_objects[i]["inferred_methods"]))
+        if not all_methods:
+            print ("cooking methods: None")
+            print ("primary cooking methods: None")
+            print ("other cooking methods: None")
+        else:
+            print ("cooking methods: "+' '.join(all_methods))
+            print ('primary cooking methods: ' + ' '.join(instructions_objects[i]['primary_method']))
+            print ('other cooking methods: ' + ' '.join(instructions_objects[i]['other_method']))
+        if not instructions_objects[i]['cooking_time'][0]:
+            print ("cooking time: None" )
+        else:
+            print ("cooking time: " + ' '.join(instructions_objects[i]['cooking_time']) + '\n')
 
 if __name__ == '__main__':
     url = input("Enter a URL from AllRecipes.com, to transform: ")
     all_strings = fetch_page(url)
     ing_strings = all_strings[0]
     dir_strings = all_strings[1]
+    dir_strings  = sentence_tokenizer(dir_strings)
+
     title = all_strings[2]
     ingredients_objects = find_ingredients_objects(ing_strings)
     all_ingredients = full_ingredients_list(ingredients_objects)
