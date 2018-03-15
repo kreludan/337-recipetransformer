@@ -41,6 +41,7 @@ import copy
 import string
 import sys
 from nltk.stem.porter import *
+import random
 #   For now, the URL has to be manually changed here
 #   Ideally by the end we'll have some walkthrough / user input interface which will be nicer
 # set_url = "https://www.allrecipes.com/recipe/242314/browned-butter-banana-bread/"
@@ -812,12 +813,15 @@ def italian_transform(ingredient_objects, instruction_objects):
 	transformed_instruction = []
 	instruction_object_copy = copy.deepcopy(instruction_objects)
     
+	ital_spice = []
+	ital_sauce = []
+
+
     #loop over all intructions
 	for instruction in instruction_object_copy:
 		prev_ingredient = ''
 		ital_ingre = []
-		ital_spice = []
-		ital_sauce = []
+
 		c_ingredients = instruction['ingredients']
 		if c_ingredients:
 			for c_ingre in c_ingredients:
@@ -866,11 +870,6 @@ def italian_transform(ingredient_objects, instruction_objects):
 			elif depluralize(string) in foreign_sauces:
 				c_ingre['name'] = ital_sauce.pop()
 				c_ingre['descriptor'] = ['sauce']
-
-
-			elif string in banned or string in banned:
-				c_ingre['name'][i] = ''
-				c_ingre['name'].pop(i)
 
 
 			prev_ingredient = string
