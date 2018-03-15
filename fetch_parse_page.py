@@ -694,6 +694,8 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
 
     return transformed_instruction,ingredient_objects
 
+# This one is pretty funny: https://www.allrecipes.com/recipe/14280/fresh-broccoli-salad/
+
 def vege_to_non_vege(ingredient_objects, instruction_objects):
     #    ingredients_objects = find_ingredients_objects(ing_strings)
     #   all_ingredients = full_ingredients_list(ingredients_objects)
@@ -707,6 +709,7 @@ def vege_to_non_vege(ingredient_objects, instruction_objects):
     transformed_instruction = []
     instruction_object_copy = copy.deepcopy(instruction_objects)
     #loop over all intructions
+    num_bacon = 0
     for instruction in instruction_object_copy:
         prev_ingredient = ''
         full_ingre = []
@@ -732,11 +735,12 @@ def vege_to_non_vege(ingredient_objects, instruction_objects):
 
             if not meat_ingre:
                 full_ingre.append('bacon')
-
+                num_bacon += 1
 
         instruction['ingredients'] = full_ingre
         transformed_instruction.append(instruction)
     #transfer the ingredients list
+    ingredient_objects.append({'name': ['bacon'], 'quantity': ['{0}'.format(num_bacon*2)], 'measurement': ['strips'], 'descriptor': ['crispy'], 'preparation': ['crumbled']})
     for c_ingre in ingredient_objects:
         n = c_ingre['name']
         desc = c_ingre['descriptor']
@@ -761,6 +765,7 @@ def vege_to_non_vege(ingredient_objects, instruction_objects):
 
 
     return transformed_instruction,ingredient_objects
+
 
 
 
