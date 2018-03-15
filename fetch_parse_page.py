@@ -881,15 +881,15 @@ def italian_transform(ingredient_objects, instruction_objects):
 			string = string.lower()
 
 			if depluralize(string) in foreign_proteins:
-				c_ingre['name'] = 'sausage'
+				c_ingre['name'] = ['sausage']
 				c_ingre['descriptor'] = ['italian']
 			elif depluralize(string) in oils:
-				c_ingre['name'] = 'oil'
+				c_ingre['name'] = ['oil']
 				c_ingre['descriptor'] = ['olive']
 			elif depluralize(string) in foreign_spices:
-				c_ingre['name'] = ital_spice.pop()
+				c_ingre['name'] = [ital_spice.pop()]
 			elif depluralize(string) in foreign_sauces:
-				c_ingre['name'] = ital_sauce.pop()
+				c_ingre['name'] = [ital_sauce.pop()]
 				c_ingre['descriptor'] = ['sauce']
 
 
