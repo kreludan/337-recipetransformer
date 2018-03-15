@@ -443,7 +443,7 @@ def southasian_transform(ingredient_objects, instruction_objects, title = "place
             sweet_measurement = ingredient['measurement']
         if 'tomato' in ingredient['name'] or 'tomatoes' in ingredient['name']:
             has_tomatoes = True
--            ingredient['quantity'] = str(convert_to_number(ingredient['quantity']) * 1.5)
+            ingredient['quantity'] = str(convert_to_number(ingredient['quantity']) * 1.5)
         if 'onion' in ingredient['name'] or 'onions' in ingredient['name']:
             has_onions = True
             ingredient['quantity'] = str(convert_to_number(ingredient['quantity']) * 1.5)
@@ -786,7 +786,7 @@ replace with 'Italian Sausage'
 	-
 '''     
 
-def italian_transform(ingredient_objects, instruction_objects, title = "placeholder"):
+def italian_transform(ingredient_objects, instruction_objects):
 
 	foreign_spices = ['cajun seasoning', 'creole seasoning', 'cumin', 'cayenne', 'curry', 'saffron', 'cilantro', 'taco seasoning']  
 	foreign_sauces = ['ponzu', 'hoisin', 'soy', 'sweet and sour', 'teriyaki', 'sriracha', 'barbecue']
@@ -798,30 +798,89 @@ def italian_transform(ingredient_objects, instruction_objects, title = "placehol
 				       'bass', 'catfish', 'cod', 'pollock', 'clam', 'clams', 'flounder', 'lobster', 'yellowtail', 'sturgeon', 'mackerel',
 				       'eel', 'crawfish', 'crayfish']
 
+	
+#	ingredients = copy.deepcopy(ingredient_objects)
+#
+#	for ingredient in ingredients:
+#
+#		#change oil to olive oil
+#		if 'oil' in ingredient['name']:
+#			ingredient['name'] = ['oil']
+#			ingredient['descriptor'] = ['olive']
+#
+#		#change rice to risotto
+#		if 'rice' in ingredient['name']:
+#			ingredient['name'] = ['risotto']
+#			ingredient['descriptor'] = ['']
+#
+#		#change non-italian meats to italian sausage
+#		for foreign_protein in foreign_proteins:
+#			if foreign_protein in ingredient['name']:
+#				ingredient['name'] = ['sausage']
+#				ingredient['descriptor'] = ['italian']
+	
 
-	ingredients = copy.deepcopy(ingredient_objects)
+	transformed_instruction = []
+	instruction_object_copy = copy.deepcopy(instruction_objects)
+    
+    #loop over all intructions
+	for instruction in instruction_object_copy:
+		prev_ingredient = ''
+		ital_ingre = []
+		c_ingredients = instruction['ingredients']
+		if c_ingredients:
+			for c_ingre in c_ingredients:
+				c_ingre = c_ingre.lower()
 
-	for ingredient in ingredients:
+				if depluralize(c_ingre) in foreign_proteins:
+					ital_ingre.append('sausage')
+        
 
-		#change oil to olive oil
-		if 'oil' in ingredient['name']:
-			ingredient['name'] = ['oil']
-			ingredient['descriptor'] = ['olive']
+				prev_ingredient = c_ingre
+		instruction['ingredients'] = ital_ingre
+		transformed_instruction.append(instruction)
 
-		#change rice to risotto
-		if 'rice' in ingredient['name']:
-			ingredient['name'] = ['risotto']
-			ingredient['descriptor'] = ['']
 
-		#change non-italian meats to italian sausage
-		for foreign_protein in foreign_proteins:
-			if foreign_protein in ingredient['name']:
-				ingredient['name'] = ['sausage']
-				ingredient['descriptor'] = ['italian']
+    #transfer the ingredients list
+	for c_ingre in ingredient_objects:
+		n = c_ingre['name']
+		desc = c_ingre['descriptor']
+		prev_ingredient = ''
+		for i,string in enumerate(n, 0):
+			string = string.lower()
 
-	print(ingredients)
+			if depluralize(string) in foreign_proteins:
+                # replace with relevant italian sausage
+				c_ingre['name'][i] = 'sausage'
 
-	return 1
+				if 'sweet' in c_ingre['descriptor'] and 'salty' in c_ingre['descriptor']:
+					c_ingre['descriptor'] = ['sweet', 'salty']
+				elif 'sweet' in c_ingre['descriptor']:
+					c_ingre['descriptor'] = ['sweet']
+				elif 'salty' in c_ingre['descriptor']:
+					c_ingre['descriptor'] = ['salty']
+
+			elif depluralize(string) in fats:
+				ital_ingre.append('butter')
+				c_ingre['name'][i] = 'butter'
+			elif string in banned or string in banned:
+				c_ingre['name'][i] = ''
+				c_ingre['name'].pop(i)
+
+
+			prev_ingredient = string
+
+#
+#        for i,string in enumerate(desc, 0):
+#            if depluralize(string.lower()) in meats or depluralize(string.lower()) in fish:
+#                # change descriptor, so basically just make it vegetable
+#                c_ingre['descriptor'][i] = 'vegetable'
+#            elif string.lower() in banned:
+#                c_ingre['descriptor'].pop(i)
+#
+
+	return transformed_instruction, ingredient_objects
+
 
 def depluralize(ingredient):
     if ingredient == 'cheeses':
@@ -958,7 +1017,7 @@ def heal_to_non_heal(ingredient_objects, instruction_objects):
             elif depluralize(string) in ['sugar', 'salt']:
                 val = convert_to_number(c_ingre['quantity'])
                 val = val * 2
--                # just half the level of salt and level of sugar
+                # just half the level of salt and level of sugar
                 c_ingre['quantity'] = ['{0}'.format(val)]
             elif depluralize(string) == 'butter' or depluralize(string) == 'oil':
                 # Change fat type and increase it by 25%
@@ -1029,7 +1088,7 @@ def print_original_info(title, ing_strings, dir_strings):
 def sentence_tokenizer(all_steps):
     split_sentences = []
     for step in all_steps:
-        split_sentences += sent_tokenize(step)
+       split_sentences += sent_tokenize(step)
     return split_sentences
 
 def fetch_cooking_time(dir_string):
