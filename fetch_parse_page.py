@@ -662,23 +662,36 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
                 elif depluralize(string) in spec_organs_or_misc:
                     c_ingre['name'][i] = 'tofu'
                     c_ingre['name'].pop(i-1)
+                    i = i-1
                 else:
                     c_ingre['name'][i] = 'tofu'
+
+                if 'sweet' in c_ingre['descriptor'] and 'salty' in c_ingre['descriptor']:
+                    c_ingre['descriptor'] = ['sweet', 'salty']
+                elif 'sweet' in c_ingre['descriptor']:
+                    c_ingre['descriptor'] = ['sweet']
+                elif 'salty' in c_ingre['descriptor']:
+                    c_ingre['descriptor'] = ['salty']
+                        
             elif depluralize(string) == 'egg':
                 if prev_ingredient == 'fish' or prev_ingredient in fish:
                     c_ingre['name'][i] = 'lentils'
+                    if 'sweet' in c_ingre['descriptor'] and 'salty' in c_ingre['descriptor']:
+                        c_ingre['descriptor'] = ['sweet', 'salty']
+                    elif 'sweet' in c_ingre['descriptor']:
+                        c_ingre['descriptor'] = ['sweet']
+                    elif 'salty' in c_ingre['descriptor']:
+                        c_ingre['descriptor'] = ['salty']
+
                     c_ingre['name'].pop(i-1)
                     i = i-1
             elif depluralize(string) in fats:
                 vege_ingre.append('butter')
-
-                c_ingre['name'][i] = 'tofu'
-            elif string in fats:
-                # replace with a vegetarian oil/fat
                 c_ingre['name'][i] = 'butter'
             elif string in banned or string in banned:
                 c_ingre['name'][i] = ''
                 c_ingre['name'].pop(i)
+
 
             prev_ingredient = string
 
@@ -688,6 +701,7 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
                 c_ingre['descriptor'][i] = 'vegetable'
             elif string.lower() in banned:
                 c_ingre['descriptor'].pop(i)
+
 
     return transformed_instruction,ingredient_objects
 
