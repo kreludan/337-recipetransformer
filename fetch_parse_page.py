@@ -1017,6 +1017,7 @@ def fetch_cooking_time(dir_string):
                 return str(scale_2) + ' to ' + str(scale) + ' ' +time_unit
             else:
                 return str(scale)+' '+ time_unit
+
 def genrate_output_steps(instructions_objects):
     for i in range(len(instructions_objects)):
         print ("step "+str(i+1))
@@ -1057,6 +1058,7 @@ if __name__ == '__main__':
     all_methods = full_methods_list(dir_strings, all_ingredients)
     all_methods_class= find_primary_cooking_method(all_methods['parsed_methods']+all_methods['inferred_methods'])
     instructions_objects = assemble_instruction_objects(dir_strings, all_ingredients)
+    genrate_output_steps(instructions_objects)
     print("You can do several actions; press...")
     print("[1] To view the title, original ingredients, and original instructions of the recipe.")
     print("[2] To view our parsed representations of the ingredients and instructions of this recipe")
