@@ -443,7 +443,7 @@ def custom_transform(ingredient_objects, instruction_objects, title = "placehold
             sweet_measurement = ingredient['measurement']
         if 'tomato' in ingredient['name'] or 'tomatoes' in ingredient['name']:
             has_tomatoes = True
-            ingredient['quantity'] = str(convert_to_number(ingredient['quantity']) * 1.5)
+-            ingredient['quantity'] = str(convert_to_number(ingredient['quantity']) * 1.5)
         if 'onion' in ingredient['name'] or 'onions' in ingredient['name']:
             has_onions = True
             ingredient['quantity'] = str(convert_to_number(ingredient['quantity']) * 1.5)
@@ -772,15 +772,42 @@ replace with 'Italian Sausage'
 	-
 '''     
 
-def italian_transform(ingredient_objects, instruction_objects,title = "placeholder",):
+def italian_transform(ingredient_objects, instruction_objects, title = "placeholder"):
 
-	foreign_spices = ['Cajun Seasoning', 'Creole Seasoning', 'Cumin', 'Cayenne', 'Curry', 'Saffron', ' Cilantro', 'Taco Seasoning']  
-	foreign_sauces = ['Ponzu', 'Hoisin', 'Soy', 'Sweet and Sour', 'Teriyaki', 'Sriracha', 'Barbecue']
-	foreign_proteins = []
+	foreign_spices = ['cajun seasoning', 'creole seasoning', 'cumin', 'cayenne', 'curry', 'saffron', 'cilantro', 'taco seasoning']  
+	foreign_sauces = ['ponzu', 'hoisin', 'soy', 'sweet and sour', 'teriyaki', 'sriracha', 'barbecue']
+	italian_proteins = ['chicken', 'beef', 'sausage', 'shrimp', 'pork', 'steak', 'bacon', 'ham', 'turkey', 'fish', 'salmon', 'trout', 
+						'catfish', 'shrimp', 'pollock', 'clam', 'clams', 'crab', 'oyster', 'oysters', 'lobster', 'octopus', 'squid', 
+						'caviar', 'mackerel', 'anchovy', 'anchovies', 'scallop', 'scallops', 'tuna', 'eel', 'crawfish', 'crayfish']
+	foreign_proteins = ['bear', 'buffalo', 'bison', 'caribou', 'lamb', 'goat', 'horse', 'kangaroo', 'moose', 'mutton', 'rabbit',
+				       'snake', 'squirrel', 'tripe', 'turtle', 'emu', 'gizzard', 'ostrich', 'partridge', 'pheasant', 'quail', 'spam',
+				       'bass', 'catfish', 'cod', 'pollock', 'clam', 'clams', 'flounder', 'lobster', 'yellowtail', 'sturgeon', 'mackerel',
+				       'eel', 'crawfish', 'crayfish']
+
 
 	ingredients = copy.deepcopy(ingredient_objects)
 
+	for ingredient in ingredients:
 
+		#change oil to olive oil
+		if 'oil' in ingredient['name']:
+			ingredient['name'] = ['oil']
+			ingredient['descriptor'] = ['olive']
+
+		#change rice to risotto
+		if 'rice' in ingredient['name']:
+			ingredient['name'] = ['risotto']
+			ingredient['descriptor'] = ['']
+
+		#change non-italian meats to italian sausage
+		for foreign_protein in foreign_proteins:
+			if foreign_protein in ingredient['name']:
+				ingredient['name'] = ['sausage']
+				ingredient['descriptor'] = ['italian']
+
+	print(ingredients)
+
+	return 1
 
 def depluralize(ingredient):
     if ingredient == 'cheeses':
@@ -917,7 +944,7 @@ def heal_to_non_heal(ingredient_objects, instruction_objects):
             elif depluralize(string) in ['sugar', 'salt']:
                 val = convert_to_number(c_ingre['quantity'])
                 val = val * 2
-                # just half the level of salt and level of sugar
+-                # just half the level of salt and level of sugar
                 c_ingre['quantity'] = ['{0}'.format(val)]
             elif depluralize(string) == 'butter' or depluralize(string) == 'oil':
                 # Change fat type and increase it by 25%
