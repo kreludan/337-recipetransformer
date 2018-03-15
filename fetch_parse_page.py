@@ -405,7 +405,7 @@ Changes to the cooking?
 ---If cooking is involved, then generally you should sear the vegetables before doing anything else with them
 ---Not sure if this should be included as a preparation in the instructions, or not, though......
 '''
-def custom_transform(ingredient_objects, instruction_objects, title = "placeholder"):
+def southasian_transform(ingredient_objects, instruction_objects, title = "placeholder"):
     banned = ['cow', 'beef', 'steak', 'filet', 'mignon', 'brisket', 'pork']   #  गाय हमारी माता हे !!!! don't eat cows; also pork
     to_modify = ['hotdog', 'ribs']
     ingredients = copy.deepcopy(ingredient_objects)
@@ -557,8 +557,7 @@ def custom_transform(ingredient_objects, instruction_objects, title = "placehold
                 if ingredient_list[i] == 'sugar':
                     ingredient_list[i] = ['brown sugar', 'pistachios', 'saffron']
 
-    print(ingredients)
-    print(instructions)
+    return instructions, ingredients
 
 
 
@@ -593,7 +592,7 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
 
     fats = ['fat', 'lard']
 
-    banned = ['chuck', 'boneless', 'bone']
+    banned = ['chuck', 'boneless', 'boneles', 'bonel', 'bone', 'breast', 'skinless']
 
     # For things like heart, liver, tongue, stomach, intestines
     # only replace that particular buzz word, and ignore all the other parts of the name we
@@ -606,8 +605,7 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
     #           - Including other types of birds as well
 
     # Specific replacement for seitan
-    spec_replacements = ['beef', 'chicken', 'calf', 'goose', 'ostrich',\
-                        'partridge', 'pheasant', 'quail', 'turkey', 'hen', 'duck', 'emu']
+    spec_replacements = ['beef', 'chicken', 'calf', 'goose', 'ostrich', 'partridge', 'pheasant', 'quail', 'turkey', 'hen', 'duck', 'emu']
     # Tempeh: fish, pork
     # default: tofu
 
@@ -641,7 +639,7 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
                         vege_ingre.append('lentils')
                 elif depluralize(c_ingre) in fats:
                     vege_ingre.append('butter')
-                else:
+                elif c_ingre not in banned and depluralize(c_ingre) not in banned:
                     vege_ingre.append(c_ingre)
 
                 prev_ingredient = c_ingre
@@ -670,14 +668,16 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
                 if prev_ingredient == 'fish' or prev_ingredient in fish:
                     c_ingre['name'][i] = 'lentils'
                     c_ingre['name'].pop(i-1)
+                    i = i-1
             elif depluralize(string) in fats:
                 vege_ingre.append('butter')
 
                 c_ingre['name'][i] = 'tofu'
-            elif string.lower() in fats:
+            elif string in fats:
                 # replace with a vegetarian oil/fat
                 c_ingre['name'][i] = 'butter'
-            elif string.lower() in banned:
+            elif string in banned or string in banned:
+                c_ingre['name'][i] = ''
                 c_ingre['name'].pop(i)
 
             prev_ingredient = string
@@ -1010,7 +1010,7 @@ def generate_output_steps(instructions_objects):
         print (('Other cooking methods: ' + ', '.join(instructions_objects[i]['other_method'])) + '\n')
 
 if __name__ == '__main__':
-    url = input("Enter a URL from AllRecipes.com, to transform:")
+    url = input("Enter a URL from AllRecipes.com, to transform: ")
     all_strings = fetch_page(url)
     ing_strings = all_strings[0]
     dir_strings = all_strings[1]
@@ -1030,7 +1030,7 @@ if __name__ == '__main__':
     print("[6] To view our [non-healthy to healthy] transform of this recipe.")
     print("[7] To view our [healthy to non-healthy] transform of this recipe.")
     print("[8] To view our [custom; South Asian] transform of this recipe.")
-    instruction = input("Enter a number corresponding to the instruction you would like:")
+    instruction = input("Enter a number corresponding to the instruction you would like: ")
     if instruction == "1":
         print_original_info(title, ing_strings, dir_strings)
     elif instruction == "2":
@@ -1054,12 +1054,32 @@ if __name__ == '__main__':
         print("New Instructions:")
         generate_output_steps(vege_instructions)
     elif instruction == "5":
-        print("5")
+        print("Vegetarian to non-vegetarian transform:")
+        nonveg_instructions, nonveg_ingredients = vege_to_non_vege(ingredients_objects, instructions_objects)
+        print("New Ingredients:")
+        for nonveg_ingredient in nonveg_ingredients:
+            print(generate_ingredient_string(vege_ingredient))
+        print("New Instructions:")
+        generate_output_steps(nonveg_instructions)
     elif instruction == "6":
-        print("6")
-    else:
-        print("7")
-    
+        print("Non-healthy to healthy transform:")
+        healthy_instructions, healthy_ingredients = non_heal_to_heal(ingredients_objects, instructions_objects)
+        print("New Ingredients:")
+        for healthy_ingredient in healthy_ingredients:
+            print(generate_ingredient_string(healthy_ingredient))
+        print("New Instructions:")
+        generate_output_steps(healthy_instructions)
+    elif instruction == "7":
+        print("Healthy to non-healthy transform:")
+        nonhealthy_instructions, nonhealthy_ingredients = heal_to_non_heal(ingredients_objects, instructions_objects)
+        print("New Ingredients:")
+        for nonhealthy_ingredient in nonhealthy_ingredients:
+            print(generate_ingredient_string(nonhealthy_ingredient))
+        print("New Instructions:")
+        generate_output_steps(nonhealthy_instructions)
+    elif instruction == "8":
+        print("8")
+
     
     '''
     print("Recipe title: " + title)
