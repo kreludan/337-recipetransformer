@@ -789,37 +789,21 @@ replace with 'Italian Sausage'
 
 def italian_transform(ingredient_objects, instruction_objects):
 
-	foreign_spices = ['cajun seasoning', 'creole seasoning', 'cumin', 'cayenne', 'curry', 'saffron', 'cilantro', 'taco seasoning']  
+	foreign_spices = ['cajun', 'creole', 'cumin', 'cayenne', 'curry', 'saffron', 'cilantro', 'taco']
+	ital_spices = ['basil', 'bayleaves', 'sage', 'rosemary', 'marjoram', 'garlic', 'oregano', 'parsley', 'thyme']
+
 	foreign_sauces = ['ponzu', 'hoisin', 'soy', 'sweet and sour', 'teriyaki', 'sriracha', 'barbecue']
+	ital_sauces = ['pesto', 'alfredo', 'marinara', 'vodka', 'tomato', 'neapolitan']
+
 	italian_proteins = ['chicken', 'beef', 'sausage', 'shrimp', 'pork', 'steak', 'bacon', 'ham', 'turkey', 'fish', 'salmon', 'trout', 
 						'catfish', 'shrimp', 'pollock', 'clam', 'clams', 'crab', 'oyster', 'oysters', 'lobster', 'octopus', 'squid', 
 						'caviar', 'mackerel', 'anchovy', 'anchovies', 'scallop', 'scallops', 'tuna', 'eel', 'crawfish', 'crayfish']
+	
 	foreign_proteins = ['bear', 'buffalo', 'bison', 'caribou', 'lamb', 'goat', 'horse', 'kangaroo', 'moose', 'mutton', 'rabbit',
 				       'snake', 'squirrel', 'tripe', 'turtle', 'emu', 'gizzard', 'ostrich', 'partridge', 'pheasant', 'quail', 'spam',
 				       'bass', 'catfish', 'cod', 'pollock', 'clam', 'clams', 'flounder', 'lobster', 'yellowtail', 'sturgeon', 'mackerel',
 				       'eel', 'crawfish', 'crayfish']
-
-	
-#	ingredients = copy.deepcopy(ingredient_objects)
-#
-#	for ingredient in ingredients:
-#
-#		#change oil to olive oil
-#		if 'oil' in ingredient['name']:
-#			ingredient['name'] = ['oil']
-#			ingredient['descriptor'] = ['olive']
-#
-#		#change rice to risotto
-#		if 'rice' in ingredient['name']:
-#			ingredient['name'] = ['risotto']
-#			ingredient['descriptor'] = ['']
-#
-#		#change non-italian meats to italian sausage
-#		for foreign_protein in foreign_proteins:
-#			if foreign_protein in ingredient['name']:
-#				ingredient['name'] = ['sausage']
-#				ingredient['descriptor'] = ['italian']
-	
+	oils = ['fat', 'lard', 'oil']
 
 	transformed_instruction = []
 	instruction_object_copy = copy.deepcopy(instruction_objects)
@@ -828,6 +812,8 @@ def italian_transform(ingredient_objects, instruction_objects):
 	for instruction in instruction_object_copy:
 		prev_ingredient = ''
 		ital_ingre = []
+		ital_spice = []
+		ital_sauce = []
 		c_ingredients = instruction['ingredients']
 		if c_ingredients:
 			for c_ingre in c_ingredients:
@@ -835,7 +821,22 @@ def italian_transform(ingredient_objects, instruction_objects):
 
 				if depluralize(c_ingre) in foreign_proteins:
 					ital_ingre.append('sausage')
-        
+				elif depluralize(c_ingre) in oils:
+					ital_ingre.append('olive oil')
+				elif depluralize(c_ingre) == 'rice'
+					ital_ingre.append('risotto')
+
+				#eliminating foreign spices and sauces
+				elif depluralize(c_ingre) in foreign_spices:
+					random_spice = random.choice(ital_spices)
+					ital_ingre.append(random_spice)
+					#to add same random spice later to ingredients
+					ital_spice.append(random_spice)
+				elif depluralize(c_ingre) in foreign_sauces:
+					random_sauce = random.choice(ital_sauces)
+					ital_ingre.append(random_sauce)
+					#to add same random sauce later to ingredients
+					ital_sauce.append(random_sauce)
 
 				prev_ingredient = c_ingre
 		instruction['ingredients'] = ital_ingre
@@ -851,34 +852,24 @@ def italian_transform(ingredient_objects, instruction_objects):
 			string = string.lower()
 
 			if depluralize(string) in foreign_proteins:
-                # replace with relevant italian sausage
-				c_ingre['name'][i] = 'sausage'
+				c_ingre['name'] = 'sausage'
+				c_ingre['descriptor'] = ['italian']
+			elif depluralize(string) in oils:
+				c_ingre['name'] = 'oil'
+				c_ingre['descriptor'] = ['olive']
+			elif depluralize(string) in foreign_spices:
+				c_ingre['name'] = ital_spice.pop()
+			elif depluralize(string) in foreign_sauces:
+				c_ingre['name'] = ital_sauce.pop()
+				c_ingre['descriptor'] = ['sauce']
 
-				if 'sweet' in c_ingre['descriptor'] and 'salty' in c_ingre['descriptor']:
-					c_ingre['descriptor'] = ['sweet', 'salty']
-				elif 'sweet' in c_ingre['descriptor']:
-					c_ingre['descriptor'] = ['sweet']
-				elif 'salty' in c_ingre['descriptor']:
-					c_ingre['descriptor'] = ['salty']
 
-			elif depluralize(string) in fats:
-				ital_ingre.append('butter')
-				c_ingre['name'][i] = 'butter'
 			elif string in banned or string in banned:
 				c_ingre['name'][i] = ''
 				c_ingre['name'].pop(i)
 
 
 			prev_ingredient = string
-
-#
-#        for i,string in enumerate(desc, 0):
-#            if depluralize(string.lower()) in meats or depluralize(string.lower()) in fish:
-#                # change descriptor, so basically just make it vegetable
-#                c_ingre['descriptor'][i] = 'vegetable'
-#            elif string.lower() in banned:
-#                c_ingre['descriptor'].pop(i)
-#
 
 	return transformed_instruction, ingredient_objects
 
@@ -907,7 +898,7 @@ def non_heal_to_heal(ingredient_objects, instruction_objects):
         Bread crumbs -> chia seeds      (19x fiber, 2x protein, 1/35th sodium)
         Peanut butter -> almond butter  (no hydrogenated vegetable oils or added sugar)
         Milk -> Skim Milk / Almond Milk (Almond Milk has less sugar and more calcium, Skim Milk has less fat)
-        Cheese -> fat free cheese       (self explanatory)
+        Cheese --> fat free cheese       (self explanatory)
         Eggs -> egg whites              (will typically need 2x as much eggs to get the same portion size)
                                         (lower cholestrol basically)
         lettuce -> spinach/arugula
