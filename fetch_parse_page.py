@@ -407,7 +407,7 @@ def southasian_transform(ingredient_objects, instruction_objects, title = "place
     has_onions = False
     has_tomatoes = False
     has_greenchilies = False
-    
+    sa_added = False
     savory_measurement = "teaspoons"    #  setting as a default, just in case
     sweet_measurement = "teaspoons"
     
@@ -441,7 +441,7 @@ def southasian_transform(ingredient_objects, instruction_objects, title = "place
                     del ingredient['preparation'][index]
             is_sweet = True
             sweet_amt = sweet_amt + convert_to_number(ingredient['quantity'])
-            sweet_measurement = ingredient['measurement']
+            sweet_measurement = ingredient['measurement'][0]
         if 'tomato' in ingredient['name'] or 'tomatoes' in ingredient['name']:
             has_tomatoes = True
             ingredient['quantity'] = [str(convert_to_number(ingredient['quantity']) * 1.5)]
@@ -454,20 +454,18 @@ def southasian_transform(ingredient_objects, instruction_objects, title = "place
         if 'lettuce' in ingredient['name']:
             ingredient['name'] = 'cabbage'
         # sauce / seasoning changes
-        for name in ingredient['name']:
+        for i,name in enumerate(ingredient['name'], 0):
+            name = name.lower()
             if 'ponzu' == name:
-                name == 'chili'
-                break
-            if 'hoisin' == name:
-                name == 'tamarind'
-                break
-            if ('soy' == name or 'soya' == name) and 'sauce' in ingredient['name']:
-                name == 'sriracha'
-                break
-            if 'barbecue' == name:
-                name == 'indian barbecue'
-            if 'cajun' == name:
-                name == 'indian'
+                ingredient['name'][i] = 'chili'
+            elif 'hoisin' == name:
+                ingredient['name'][i]= 'tamarind'
+            elif ('soy' == name or 'soya' == name) and 'sauce' in ingredient['name']:
+                ingredient['name'][i] = 'sriracha'
+            elif 'barbecue' == name:
+                ingredient['name'][i] = 'indian barbecue'
+            elif 'cajun' == name:
+                ingredient['name'][i] = 'indian'
     # Determine whether or not savory, for ingredient additions
     
     if is_savory and (not is_sweet or (savory_amt >= sweet_amt)):   # savory case
@@ -484,11 +482,11 @@ def southasian_transform(ingredient_objects, instruction_objects, title = "place
                 ingredients.append(parse_ingredient('2 tablespoons ' + leaf))
 
         if not has_tomatoes:
-            ingredients = ingredients + parse_ingredient('2 diced tomatoes')
+            ingredients.append(parse_ingredient('2 diced tomatoes'))
         if not has_onions:
-            ingredients = ingredients + parse_ingredient('2 diced onions')
+            ingredients.append(parse_ingredient('2 diced onions'))
         if not has_greenchilies:
-            ingredients = ingredients + parse_ingredient('2 diced green chilies')
+            ingredients.append(parse_ingredient('2 diced green chilies'))
 
     else:  #  sweet case
         sweet_amounts = str(sweet_amt / 2)
@@ -520,35 +518,55 @@ def southasian_transform(ingredient_objects, instruction_objects, title = "place
                     ingredient_list[i] = 'lamb ' + ingredient_list[i]
                     break
             oil_types = ['sunflower', 'canola', 'olive', 'avocado', 'palm', 'bran', 'safflower', 'seed']
-            if ingredient_list[i] in oil_types and i < len(ingredient_list) and ingredient_list[i+1] == 'oil':
+            if ingredient_list[i].lower() in oil_types and i < len(ingredient_list) and ingredient_list[i+1].lower() == 'oil':
                 ingredient_list[i] = 'mustard'
-            if 'lettuce' in ingredient_list[i]:
+            if 'lettuce' in depluralize(ingredient_list[i].lower()):
                 ingredient_list[i] = 'cabbage'
-            if 'ponzu' in ingredient_list[i]:
+            if 'ponzu' in depluralize(ingredient_list[i].lower()):
                 ingredient_list[i] = 'chili'
-            if 'hoisin' in ingredient_list[i]:
+            if 'hoisin' in depluralize(ingredient_list[i].lower()):
                 ingredient_list[i] = 'tamarind'
-            if 'soy' in ingredient_list[i] and i < len(ingredient_list) and ingredient_list[i+1] == 'sauce':
+            if 'soy' in depluralize(ingredient_list[i].lower()) and i < len(ingredient_list) and ingredient_list[i+1].lower() == 'sauce':
                 ingredient_list[i] = 'sriracha'
-            if 'barbecue' in ingredient_list[i]:
+            if 'barbecue' in depluralize(ingredient_list[i].lower()):
                 ingredient_list[i] = 'indian barbecue'
-            if 'cajun' in ingredient_list[i]:
-                ingredient_list[i] = 'indian seasoning'
+            if 'cajun' in depluralize(ingredient_list[i].lower()):
+                ingredient_list[i] = 'indian'
             if is_savory and (not is_sweet or (savory_amt >= sweet_amt)):
                 if is_cooked:
-                    if ingredient_list[i] == 'salt':
-                        ingredient_list[i] = ['salt', 'ginger paste', 'garlic paste', 'cumin powder', 'turmeric powder',
+                    if depluralize(ingredient_list[i].lower()) == 'salt' and sa_added == False:
+                        instruction['ingredients'] = ingredient_list + ['ginger paste', 'garlic paste', 'cumin powder', 'turmeric powder',
                                        'red chili powder', 'coriander powder']
+                        ingredient_list = ingredient_list + ['ginger paste', 'garlic paste', 'cumin powder', 'turmeric powder',
+                                       'red chili powder', 'coriander powder']
+                        sa_added = True
                 else:
-                    if ingredient_list[i] == 'cabbage':
-                        ingredient_list[i] = ['cabbage', 'coriander leaves', 'mint leaves', 'cumin seeds']
+                    veggies_list = ['cabbage', 'mushroom', 'tomato', 'onion', 'pepper', 'lettuce', 'broccoli', 'spinach', 'carrots', 'zucchini', 'eggplant', 'cucumber']
+                    if depluralize(ingredient_list[i].lower()) in veggies_list and sa_added == False:
+                        instruction['ingredients'] = ingredient_list + ['cabbage', 'coriander leaves', 'mint leaves', 'cumin seeds']
+                        ingredient_list = ingredient_list + ['cabbage', 'coriander leaves', 'mint leaves', 'cumin seeds']
+                        sa_added = True
+                veggies_list = ['cabbage', 'mushroom', 'lettuce', 'broccoli', 'spinach', 'carrot', 'zucchini', 'eggplant', 'cucumber']
+                if not has_tomatoes and depluralize(ingredient_list[i].lower()) in veggies_list:
+                    instruction['ingredients'] = ingredient_list + ['tomatoes']
+                    ingredient_list = ingredient_list + ['tomatoes']
+                    has_tomatoes = True
+                if not has_onions and depluralize(ingredient_list[i].lower()) in veggies_list:
+                    instruction['ingredients'] = ingredient_list + ['onions']
+                    ingredient_list = ingredient_list + ['onions']
+                    has_onions = True
+                if not has_greenchilies and depluralize(ingredient_list[i].lower()) in veggies_list:
+                    instruction['ingredients'] = ingredient_list + ['green chilies']
+                    ingredient_list = ingredient_list + ['green chilies']
+                    has_greenchilies = True
             else:
-                if ingredient_list[i] == 'sugar':
-                    ingredient_list[i] = ['brown sugar', 'pistachios', 'saffron']
+                if depluralize(ingredient_list[i].lower()) == 'sugar' and sa_added == False:
+                    ingredient_list[i] = 'brown sugar'
+                    instruction['ingredients'] = ingredient_list + ['pistachios', 'saffron']
+                    ingredient_list = ingredient_list + ['pistachios', 'saffron']
+                    sa_added = True
 
     return instructions, ingredients
-
-
 
 def convert_to_number(quantity):  # converts quantity field of ingredient object to an actual number
     total_amount = 0
