@@ -37,7 +37,7 @@ For not healthy to healthy, can use the following food 'hacks':
 
 from bs4 import BeautifulSoup
 import urllib.request
-from nltk import pos_tag, word_tokenize
+from nltk import pos_tag, word_tokenize,sent_tokenize
 import copy
 import string
 import sys
@@ -332,7 +332,7 @@ def assemble_instruction_objects(dir_strings, all_ingredients):
     inferred_methods  = []
     for dir_string in dir_strings:
         instruction_object = {'ingredients': [], 'parsed_tools': [], 'inferred_tools': [], 'parsed_methods': [], 'inferred_methods': [],
-        'primary_method':[],'other_method':[]}
+        'primary_method':[],'other_method':[],'cooking_time':[]}        
         instruction_object['ingredients'] = list(set(find_instruction_ingredients(dir_string, all_ingredients)))
         instruction_object['parsed_tools'] = list(set(parse_tools(dir_string)))
         instruction_object['inferred_tools'] = list(set(infer_tools(dir_string)))
@@ -344,6 +344,7 @@ def assemble_instruction_objects(dir_strings, all_ingredients):
         classified_method = find_primary_cooking_method(instruction_object['inferred_methods']+instruction_object['parsed_methods'] )
         instruction_object['primary_method'] = classified_method['primary_method']
         instruction_object['other_method'] = classified_method['other_method']
+        instruction_object['cooking_time'] = [fetch_cooking_time(dir_string)]
 
         inferred_methods = inferred_methods + instruction_object['inferred_methods']
         instruction_objects.append(instruction_object)
@@ -443,7 +444,7 @@ def southasian_transform(ingredient_objects, instruction_objects, title = "place
             sweet_measurement = ingredient['measurement']
         if 'tomato' in ingredient['name'] or 'tomatoes' in ingredient['name']:
             has_tomatoes = True
--            ingredient['quantity'] = str(convert_to_number(ingredient['quantity']) * 1.5)
+            ingredient['quantity'] = str(convert_to_number(ingredient['quantity']) * 1.5)
         if 'onion' in ingredient['name'] or 'onions' in ingredient['name']:
             has_onions = True
             ingredient['quantity'] = str(convert_to_number(ingredient['quantity']) * 1.5)
@@ -958,7 +959,7 @@ def heal_to_non_heal(ingredient_objects, instruction_objects):
             elif depluralize(string) in ['sugar', 'salt']:
                 val = convert_to_number(c_ingre['quantity'])
                 val = val * 2
--                # just half the level of salt and level of sugar
+                # just half the level of salt and level of sugar
                 c_ingre['quantity'] = ['{0}'.format(val)]
             elif depluralize(string) == 'butter' or depluralize(string) == 'oil':
                 # Change fat type and increase it by 25%
