@@ -1,34 +1,44 @@
 # -*- coding: utf-8 -*-
 """
 @author: Vikram Kohli
+
 Ingredient parser testing; URLs used + issues encountered
+
 https://www.allrecipes.com/recipe/13076/bacon-and-potato-soup/
 Issues: no huge ones; used this recipe as a 'starting point' for making the parser
+
 https://www.allrecipes.com/recipe/100506/irish-potato-farls/
 Issues: '1/4 cup all-purpose flour, plus extra for dusting' didn't do so great (esp. the clause w/ 'plus')
 The word 'cup' is interpreted by NLTK's tagger as an adjective? Same with 'medium' as a noun.
 Gonna keep a running global list of these things that can be manually fixed before parsing, at the top of the file.
+
 https://www.allrecipes.com/recipe/79754/lauries-stuffed-peppers/
 More manual fixes required... maybe there's a better part-of-speech tagger out there
 Forgot to account for details that are included in parentheses; I think they probably belong in the descriptor section
 How to deal with words like 'with'? At least for the first try, I'm gonna just append 'with' to both the name and descriptor
 Because it seems like that'll be sufficient to tell what's going on
+
 https://www.allrecipes.com/recipe/11116/cream-cheese-sugar-cookies/
 First big issue with the parser shows up here... '1 egg yolk' has the parser thinking 'egg' is the measurement.
 Probably just best to keep a running list of 'measurement' words, and separate food items from measurements based on that.
 This fixed it for this URL; double checked with other recipes and seemed good.
+
 https://www.allrecipes.com/recipe/11901/to-die-for-fettuccini-alfredo/
 Small issue; 'ground' isn't picked up as a past-tense verb, but as a noun; adding a fix
 Updating 'to taste' to be a measurement worked out OK
+
 https://www.allrecipes.com/recipe/12804/seared-scallops-with-spicy-papaya-sauce/
 Labeled as a 'gourmet'/complex recipe, so maybe something weird will happen? (':
 Nope. It was getting confused about verb past participles but that was fixed fairly fast
+
 https://www.allrecipes.com/recipe/19485/honey-grilled-shrimp/
 Possible issue with 'garlic powder' being labeled as powder with a garlic descriptor. 'Shrimp, with tails attached' have 'attached' 
 falling under preparation. Added skewers, refrigerator, freezer, to tools list
+
 Tool parser testing; initially for the tool parser tried an approach that made use of part-of-word, but it was running into some--
 --issues, so eventually just settled for a simpler approach that searches from a list of already-known tool words. Will just keep--
 --updating this to make it more extensive and applicable to a variety of recipes.
+
 For not healthy to healthy, can use the following food 'hacks':
     - https://www.goredforwomen.org/live-healthy/heart-healthy-cooking-tips/healthy-substitutions/
     - https://www.nhlbi.nih.gov/health/educational/lose_wt/eat/shop_lcal_fat.htm
@@ -381,6 +391,7 @@ Transform rules (for documentation's sake):
 (1.) Kinda the golden rule for Hindus is No Cow Meat Allowed; goat or lamb are pretty reasonable replacements
 ---Brown folks (especially Muslim folks) don't really eat pork like that tbh... might need to change that as well
 ---Maybe cow --> lamb, pork --> goat??? IDK
+
 (2.) Change the oil... olive/canola aren't really things, Mustard oil might be the most reasonable
 (3.) If it's a savory dish, gotta do the following;
 ---If cooked, then the spice pantheon; ginger/garlic paste, cumin/turmeric/red chili/coriander powder
@@ -389,6 +400,7 @@ Transform rules (for documentation's sake):
 (4.) If it's a sweet dish, we can give it a ~desi twist~;
 ---Add some pistachios, and add some saffron
 ---Sugar should probably be brown sugar?
+
 Changes to the cooking?
 ---If cooking is involved, then generally you should sear the vegetables before doing anything else with them
 ---Not sure if this should be included as a preparation in the instructions, or not, though......
@@ -489,12 +501,12 @@ def custom_transform(ingredient_objects, instruction_objects, title = "placehold
         if not has_greenchilies:
             ingredients = ingredients + parse_ingredient('2 diced green chilies')
 
-    else:  #  sweet case
-        sweet_amounts = str(sweet_amt / 2)
-        base_string = sweet_amounts + ' ' + sweet_measurement + ' '
-        south_indian_sweets = ['crushed pistachios', 'saffron']
-        for sweet in south_indian_sweets:
-            ingredients.append(parse_ingredient(base_string + sweet))
+        else:  #  sweet case
+            sweet_amounts = str(sweet_amt / 2)
+            base_string = sweet_amounts + ' ' + sweet_measurement + ' '
+            south_indian_sweets = ['crushed pistachios', 'saffron']
+            for sweet in south_indian_sweets:
+                ingredients.append(parse_ingredient(base_string + sweet))
     
     instructions = copy.deepcopy(instruction_objects)
     
@@ -752,6 +764,7 @@ def vege_to_non_vege(ingredient_objects, instruction_objects):
 '''
 Second Custom Style Tranformation:
 Recipe -> Italian Recipe
+
 1. Want to detect if a recipe is already italian
 	-Return the same recipe
 2. Replace rice with pasta/risotto as necessary
@@ -770,6 +783,7 @@ replace with 'Italian Sausage'
 	-Anything with a Tortilla -> Pizza
 9. Sweet dishes to consider 
 	-
+
 '''     
 
 def italian_transform(ingredient_objects, instruction_objects,title = "placeholder",):
@@ -780,6 +794,19 @@ def italian_transform(ingredient_objects, instruction_objects,title = "placehold
 
 	ingredients = copy.deepcopy(ingredient_objects)
 
+<<<<<<< HEAD
+	# #ingredients change
+	# for ingredient in ingredients:
+	
+	# #instructions change
+
+	# return 1
+
+
+
+
+=======
+>>>>>>> aeacef4e98ac41b5b70dda7da2c7321fe33373b7
 
 
 def depluralize(ingredient):
@@ -811,6 +838,7 @@ def non_heal_to_heal(ingredient_objects, instruction_objects):
                                         (lower cholestrol basically)
         lettuce -> spinach/arugula
         butter/oil -> 1/2 canola oil, 1/2 unsweetened applesauce
+
         Instruction object layout for reference
         instruction_object = {'ingredients': [], 'parsed_tools': [], 'inferred_tools': [], 'parsed_methods': [], 'inferred_methods': [],
         'primary_method':[],'other_method':[]}
@@ -1017,3 +1045,16 @@ if __name__ == '__main__':
     #print(transformed_ingredients)
     #print(all_transformed_ingredients)
 
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
