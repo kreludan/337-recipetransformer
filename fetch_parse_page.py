@@ -1110,30 +1110,51 @@ def fetch_cooking_time(dir_string):
                 return str(scale)+' '+ time_unit
 
 def genrate_output_steps(instructions_objects):
+    instruction_list = []
     for i in range(len(instructions_objects)):
-        print ("step "+str(i+1))
-        if not instructions_objects[i]['ingredients']:
-            print ("ingredients: None")
-        else:
-            print ("ingredients: "+' '.join(instructions_objects[i]['ingredients']))
+        instruction_step = {"ingredients":[],"tools":[],"primary_methods":[],"other_methods":[],
+    "cooking_time":[]}
+        instruction_step['step'] = i+1
+        # if not instructions_objects[i]['ingredients']:
+        instruction_step['ingredients']+= instructions_objects[i]['ingredients']
         all_tools = list(set(instructions_objects[i]["parsed_tools"] + instructions_objects[i]["inferred_tools"])) 
-        if not all_tools:
-            print ("tools: None")
-        else:
-            print ("tools: "+' '.join(all_tools))
-        all_methods = list(set(instructions_objects[i]['parsed_methods'] + instructions_objects[i]["inferred_methods"]))
-        if not all_methods:
-            print ("cooking methods: None")
-            print ("primary cooking methods: None")
-            print ("other cooking methods: None")
-        else:
-            print ("cooking methods: "+' '.join(all_methods))
-            print ('primary cooking methods: ' + ' '.join(instructions_objects[i]['primary_method']))
-            print ('other cooking methods: ' + ' '.join(instructions_objects[i]['other_method']))
-        if not instructions_objects[i]['cooking_time'][0]:
-            print ("cooking time: None" )
-        else:
-            print ("cooking time: " + ' '.join(instructions_objects[i]['cooking_time']) + '\n')
+        # print ("tools",all_tools)
+        # if not all_tools:
+        instruction_step['tools'] += all_tools
+        # if not instructions_objects[i]['primary_method']:
+        instruction_step['primary_methods'] += instructions_objects[i]['primary_method']
+        # if not instructions_objects[i]['other_method']:
+        instruction_step['other_methods'] += instructions_objects[i]['other_method']
+        instruction_step['cooking_time'] += instructions_objects[i]['cooking_time']
+        instruction_list.append(instruction_step)
+
+    #merge if the ingredients in none
+    valid_steps = [ins['step']-1 for ins in instruction_list if ins['ingredients']]
+    empty_steps = [ins['step']-1 for ins in instruction_list if not ins['ingredients']]
+    merge_list = []
+    for empty_step in empty_steps:
+        difference = [abs(empty_step - valid_step)for valid_step in valid_steps]
+        merge_target = valid_steps[difference.index(min(difference))]
+        merge_list.append((empty_step,merge_target))
+    new_instruction_list = copy.deepcopy(instruction_list)
+    merged_output = []
+    for i in range(len(merge_list)):
+        from_index = merge_list[i][0]
+        target_index = merge_list[i][1]
+        base_step = new_instruction_list[target_index]
+        base_step['step'] = i+1
+        base_step['primary_methods'] += new_instruction_list[from_index]['primary_methods']
+        base_step['other_methods'] += new_instruction_list[from_index]['other_methods']
+        base_step['tools'] += new_instruction_list[from_index]['tools']
+
+        base_step['primary_methods'] = list(set(base_step['primary_methods']))
+        base_step['other_methods'] = list(set(base_step['other_methods']))
+        base_step['tools'] = list(set(base_step['tools']))
+
+        if base_step not in merged_output:
+            merged_output.append(base_step)
+    for ins in merged_output:
+        print (ins)
 
 if __name__ == '__main__':
     url = input("Enter a URL from AllRecipes.com, to transform: ")
