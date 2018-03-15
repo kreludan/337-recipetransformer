@@ -1,34 +1,44 @@
 # -*- coding: utf-8 -*-
 """
 @author: Vikram Kohli
+
 Ingredient parser testing; URLs used + issues encountered
+
 https://www.allrecipes.com/recipe/13076/bacon-and-potato-soup/
 Issues: no huge ones; used this recipe as a 'starting point' for making the parser
+
 https://www.allrecipes.com/recipe/100506/irish-potato-farls/
 Issues: '1/4 cup all-purpose flour, plus extra for dusting' didn't do so great (esp. the clause w/ 'plus')
 The word 'cup' is interpreted by NLTK's tagger as an adjective? Same with 'medium' as a noun.
 Gonna keep a running global list of these things that can be manually fixed before parsing, at the top of the file.
+
 https://www.allrecipes.com/recipe/79754/lauries-stuffed-peppers/
 More manual fixes required... maybe there's a better part-of-speech tagger out there
 Forgot to account for details that are included in parentheses; I think they probably belong in the descriptor section
 How to deal with words like 'with'? At least for the first try, I'm gonna just append 'with' to both the name and descriptor
 Because it seems like that'll be sufficient to tell what's going on
+
 https://www.allrecipes.com/recipe/11116/cream-cheese-sugar-cookies/
 First big issue with the parser shows up here... '1 egg yolk' has the parser thinking 'egg' is the measurement.
 Probably just best to keep a running list of 'measurement' words, and separate food items from measurements based on that.
 This fixed it for this URL; double checked with other recipes and seemed good.
+
 https://www.allrecipes.com/recipe/11901/to-die-for-fettuccini-alfredo/
 Small issue; 'ground' isn't picked up as a past-tense verb, but as a noun; adding a fix
 Updating 'to taste' to be a measurement worked out OK
+
 https://www.allrecipes.com/recipe/12804/seared-scallops-with-spicy-papaya-sauce/
 Labeled as a 'gourmet'/complex recipe, so maybe something weird will happen? (':
 Nope. It was getting confused about verb past participles but that was fixed fairly fast
+
 https://www.allrecipes.com/recipe/19485/honey-grilled-shrimp/
 Possible issue with 'garlic powder' being labeled as powder with a garlic descriptor. 'Shrimp, with tails attached' have 'attached' 
 falling under preparation. Added skewers, refrigerator, freezer, to tools list
+
 Tool parser testing; initially for the tool parser tried an approach that made use of part-of-word, but it was running into some--
 --issues, so eventually just settled for a simpler approach that searches from a list of already-known tool words. Will just keep--
 --updating this to make it more extensive and applicable to a variety of recipes.
+
 For not healthy to healthy, can use the following food 'hacks':
     - https://www.goredforwomen.org/live-healthy/heart-healthy-cooking-tips/healthy-substitutions/
     - https://www.nhlbi.nih.gov/health/educational/lose_wt/eat/shop_lcal_fat.htm
@@ -217,7 +227,7 @@ def infer_tools(instruction):
 def infer_tools_helper(tokens):
     #dictionary of inferred tools to tool
     inferred_tools = {'stirring spoon': ['mix', 'stir'], 'strainer': ['drain', 'strain'], 'knife': ['cut', 'chop', 'dice', 'mince'],
-                      'refrigerator': ['chill', 'refrigerate'], 'sifter': ['sift'], 'grater': ['grate', 'grated']}
+                      'refrigerator': ['chill', 'refrigerate'], 'sifter': ['sift']}
 
 
     result_tools = []
@@ -234,7 +244,7 @@ def parse_tools(instruction):
     banned_words = ['potato', 'pinch', 'scraping']
     
     #  doing this the old way seemed to not be so great; so I think I'll just keep a running list of tool words instead
-    tool_words = ['pan', 'skillet', 'pot', 'sheet', 'grater', 'whisk', 'spoon', 'cutter', 'board', 'oven', 'bowl', 'bag',
+    tool_words = ['pan', 'skillet', 'pot', 'sheet', 'grate', 'whisk', 'spoon', 'cutter', 'board', 'oven', 'bowl', 'bag',
                   'towel', 'pin', 'knife', 'masher', 'skewer', 'refrigerator', 'freezer', 'grill', 'ladle', 'pour', 'simmer']
     
     lowercase = instruction.lower()
@@ -381,6 +391,7 @@ Transform rules (for documentation's sake):
 (1.) Kinda the golden rule for Hindus is No Cow Meat Allowed; goat or lamb are pretty reasonable replacements
 ---Brown folks (especially Muslim folks) don't really eat pork like that tbh... might need to change that as well
 ---Maybe cow --> lamb, pork --> goat??? IDK
+
 (2.) Change the oil... olive/canola aren't really things, Mustard oil might be the most reasonable
 (3.) If it's a savory dish, gotta do the following;
 ---If cooked, then the spice pantheon; ginger/garlic paste, cumin/turmeric/red chili/coriander powder
@@ -389,11 +400,12 @@ Transform rules (for documentation's sake):
 (4.) If it's a sweet dish, we can give it a ~desi twist~;
 ---Add some pistachios, and add some saffron
 ---Sugar should probably be brown sugar?
+
 Changes to the cooking?
 ---If cooking is involved, then generally you should sear the vegetables before doing anything else with them
 ---Not sure if this should be included as a preparation in the instructions, or not, though......
 '''
-def southasian_transform(ingredient_objects, instruction_objects, title = "placeholder"):
+def custom_transform(ingredient_objects, instruction_objects, title = "placeholder"):
     banned = ['cow', 'beef', 'steak', 'filet', 'mignon', 'brisket', 'pork']   #  गाय हमारी माता हे !!!! don't eat cows; also pork
     to_modify = ['hotdog', 'ribs']
     ingredients = copy.deepcopy(ingredient_objects)
@@ -443,7 +455,7 @@ def southasian_transform(ingredient_objects, instruction_objects, title = "place
             sweet_measurement = ingredient['measurement']
         if 'tomato' in ingredient['name'] or 'tomatoes' in ingredient['name']:
             has_tomatoes = True
--            ingredient['quantity'] = str(convert_to_number(ingredient['quantity']) * 1.5)
+            ingredient['quantity'] = str(convert_to_number(ingredient['quantity']) * 1.5)
         if 'onion' in ingredient['name'] or 'onions' in ingredient['name']:
             has_onions = True
             ingredient['quantity'] = str(convert_to_number(ingredient['quantity']) * 1.5)
@@ -489,12 +501,12 @@ def southasian_transform(ingredient_objects, instruction_objects, title = "place
         if not has_greenchilies:
             ingredients = ingredients + parse_ingredient('2 diced green chilies')
 
-    else:  #  sweet case
-        sweet_amounts = str(sweet_amt / 2)
-        base_string = sweet_amounts + ' ' + sweet_measurement + ' '
-        south_indian_sweets = ['crushed pistachios', 'saffron']
-        for sweet in south_indian_sweets:
-            ingredients.append(parse_ingredient(base_string + sweet))
+        else:  #  sweet case
+            sweet_amounts = str(sweet_amt / 2)
+            base_string = sweet_amounts + ' ' + sweet_measurement + ' '
+            south_indian_sweets = ['crushed pistachios', 'saffron']
+            for sweet in south_indian_sweets:
+                ingredients.append(parse_ingredient(base_string + sweet))
     
     instructions = copy.deepcopy(instruction_objects)
     
@@ -545,7 +557,8 @@ def southasian_transform(ingredient_objects, instruction_objects, title = "place
                 if ingredient_list[i] == 'sugar':
                     ingredient_list[i] = ['brown sugar', 'pistachios', 'saffron']
 
-    return instructions, ingredients
+    print(ingredients)
+    print(instructions)
 
 
 
@@ -580,7 +593,7 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
 
     fats = ['fat', 'lard']
 
-    banned = ['chuck', 'boneless', 'boneles', 'bonel', 'bone', 'breast', 'skinless']
+    banned = ['chuck', 'boneless', 'bone']
 
     # For things like heart, liver, tongue, stomach, intestines
     # only replace that particular buzz word, and ignore all the other parts of the name we
@@ -593,7 +606,8 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
     #           - Including other types of birds as well
 
     # Specific replacement for seitan
-    spec_replacements = ['beef', 'chicken', 'calf', 'goose', 'ostrich', 'partridge', 'pheasant', 'quail', 'turkey', 'hen', 'duck', 'emu']
+    spec_replacements = ['beef', 'chicken', 'calf', 'goose', 'ostrich',\
+                        'partridge', 'pheasant', 'quail', 'turkey', 'hen', 'duck', 'emu']
     # Tempeh: fish, pork
     # default: tofu
 
@@ -615,7 +629,7 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
                         vege_ingre.append('seitan')
                     elif depluralize(c_ingre) in fish or depluralize(c_ingre) == 'pork':
                         vege_ingre.append('tempeh')
-                    elif depluralize(c_ingre) in spec_organs_or_misc:
+                    elif depluralize(c_ingre) in spec_organs:
                         # get rid of first part of organ name (i.e., pig intestine, cow tongue, etc)
                         vege_ingre.pop()
                         vege_ingre.append('tofu')
@@ -627,7 +641,7 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
                         vege_ingre.append('lentils')
                 elif depluralize(c_ingre) in fats:
                     vege_ingre.append('butter')
-                elif c_ingre not in banned and depluralize(c_ingre) not in banned:
+                else:
                     vege_ingre.append(c_ingre)
 
                 prev_ingredient = c_ingre
@@ -650,36 +664,21 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
                 elif depluralize(string) in spec_organs_or_misc:
                     c_ingre['name'][i] = 'tofu'
                     c_ingre['name'].pop(i-1)
-                    i = i-1
                 else:
                     c_ingre['name'][i] = 'tofu'
-
-                if 'sweet' in c_ingre['descriptor'] and 'salty' in c_ingre['descriptor']:
-                    c_ingre['descriptor'] = ['sweet', 'salty']
-                elif 'sweet' in c_ingre['descriptor']:
-                    c_ingre['descriptor'] = ['sweet']
-                elif 'salty' in c_ingre['descriptor']:
-                    c_ingre['descriptor'] = ['salty']
-                        
             elif depluralize(string) == 'egg':
                 if prev_ingredient == 'fish' or prev_ingredient in fish:
                     c_ingre['name'][i] = 'lentils'
-                    if 'sweet' in c_ingre['descriptor'] and 'salty' in c_ingre['descriptor']:
-                        c_ingre['descriptor'] = ['sweet', 'salty']
-                    elif 'sweet' in c_ingre['descriptor']:
-                        c_ingre['descriptor'] = ['sweet']
-                    elif 'salty' in c_ingre['descriptor']:
-                        c_ingre['descriptor'] = ['salty']
-
                     c_ingre['name'].pop(i-1)
-                    i = i-1
             elif depluralize(string) in fats:
                 vege_ingre.append('butter')
-                c_ingre['name'][i] = 'butter'
-            elif string in banned or string in banned:
-                c_ingre['name'][i] = ''
-                c_ingre['name'].pop(i)
 
+                c_ingre['name'][i] = 'tofu'
+            elif string.lower() in fats:
+                # replace with a vegetarian oil/fat
+                c_ingre['name'][i] = 'butter'
+            elif string.lower() in banned:
+                c_ingre['name'].pop(i)
 
             prev_ingredient = string
 
@@ -689,7 +688,6 @@ def non_vege_to_vege(ingredient_objects, instruction_objects):
                 c_ingre['descriptor'][i] = 'vegetable'
             elif string.lower() in banned:
                 c_ingre['descriptor'].pop(i)
-
 
     return transformed_instruction,ingredient_objects
 
@@ -766,6 +764,7 @@ def vege_to_non_vege(ingredient_objects, instruction_objects):
 '''
 Second Custom Style Tranformation:
 Recipe -> Italian Recipe
+
 1. Want to detect if a recipe is already italian
 	-Return the same recipe
 2. Replace rice with pasta/risotto as necessary
@@ -784,44 +783,31 @@ replace with 'Italian Sausage'
 	-Anything with a Tortilla -> Pizza
 9. Sweet dishes to consider 
 	-
+
 '''     
 
-def italian_transform(ingredient_objects, instruction_objects, title = "placeholder"):
+def italian_transform(ingredient_objects, instruction_objects,title = "placeholder",):
 
-	foreign_spices = ['cajun seasoning', 'creole seasoning', 'cumin', 'cayenne', 'curry', 'saffron', 'cilantro', 'taco seasoning']  
-	foreign_sauces = ['ponzu', 'hoisin', 'soy', 'sweet and sour', 'teriyaki', 'sriracha', 'barbecue']
-	italian_proteins = ['chicken', 'beef', 'sausage', 'shrimp', 'pork', 'steak', 'bacon', 'ham', 'turkey', 'fish', 'salmon', 'trout', 
-						'catfish', 'shrimp', 'pollock', 'clam', 'clams', 'crab', 'oyster', 'oysters', 'lobster', 'octopus', 'squid', 
-						'caviar', 'mackerel', 'anchovy', 'anchovies', 'scallop', 'scallops', 'tuna', 'eel', 'crawfish', 'crayfish']
-	foreign_proteins = ['bear', 'buffalo', 'bison', 'caribou', 'lamb', 'goat', 'horse', 'kangaroo', 'moose', 'mutton', 'rabbit',
-				       'snake', 'squirrel', 'tripe', 'turtle', 'emu', 'gizzard', 'ostrich', 'partridge', 'pheasant', 'quail', 'spam',
-				       'bass', 'catfish', 'cod', 'pollock', 'clam', 'clams', 'flounder', 'lobster', 'yellowtail', 'sturgeon', 'mackerel',
-				       'eel', 'crawfish', 'crayfish']
-
+	foreign_spices = ['Cajun Seasoning', 'Creole Seasoning', 'Cumin', 'Cayenne', 'Curry', 'Saffron', ' Cilantro', 'Taco Seasoning']  
+	foreign_sauces = ['Ponzu', 'Hoisin', 'Soy', 'Sweet and Sour', 'Teriyaki', 'Sriracha', 'Barbecue']
+	foreign_proteins = []
 
 	ingredients = copy.deepcopy(ingredient_objects)
 
-	for ingredient in ingredients:
+<<<<<<< HEAD
+	# #ingredients change
+	# for ingredient in ingredients:
+	
+	# #instructions change
 
-		#change oil to olive oil
-		if 'oil' in ingredient['name']:
-			ingredient['name'] = ['oil']
-			ingredient['descriptor'] = ['olive']
+	# return 1
 
-		#change rice to risotto
-		if 'rice' in ingredient['name']:
-			ingredient['name'] = ['risotto']
-			ingredient['descriptor'] = ['']
 
-		#change non-italian meats to italian sausage
-		for foreign_protein in foreign_proteins:
-			if foreign_protein in ingredient['name']:
-				ingredient['name'] = ['sausage']
-				ingredient['descriptor'] = ['italian']
 
-	print(ingredients)
 
-	return 1
+=======
+>>>>>>> aeacef4e98ac41b5b70dda7da2c7321fe33373b7
+
 
 def depluralize(ingredient):
     if ingredient == 'cheeses':
@@ -852,6 +838,7 @@ def non_heal_to_heal(ingredient_objects, instruction_objects):
                                         (lower cholestrol basically)
         lettuce -> spinach/arugula
         butter/oil -> 1/2 canola oil, 1/2 unsweetened applesauce
+
         Instruction object layout for reference
         instruction_object = {'ingredients': [], 'parsed_tools': [], 'inferred_tools': [], 'parsed_methods': [], 'inferred_methods': [],
         'primary_method':[],'other_method':[]}
@@ -958,7 +945,7 @@ def heal_to_non_heal(ingredient_objects, instruction_objects):
             elif depluralize(string) in ['sugar', 'salt']:
                 val = convert_to_number(c_ingre['quantity'])
                 val = val * 2
--                # just half the level of salt and level of sugar
+                # just half the level of salt and level of sugar
                 c_ingre['quantity'] = ['{0}'.format(val)]
             elif depluralize(string) == 'butter' or depluralize(string) == 'oil':
                 # Change fat type and increase it by 25%
@@ -1012,156 +999,40 @@ def generate_ingredient_string(ing):
     else:
         return str(convert_to_number(ing['quantity'])) + " " + ing_string
 
-def print_original_info(title, ing_strings, dir_strings):
-    title_tokens = word_tokenize(title)
-    cutoff_index = -1
-    for i in range(0, len(title_tokens)):
-        if title_tokens[i] == "Recipe":
-            cutoff_index = i
-            break
-    real_title = title_tokens[:cutoff_index]
-    print("Recipe title: " + " ".join(real_title))
-    print("Ingredients:")
-    print(ing_strings)
-    print("Instructions:")
-    print(dir_strings)
-
-def sentence_tokenizer(all_steps):
-    split_sentences = []
-    for step in all_steps:
-        split_sentences += sent_tokenize(step)
-    return split_sentences
-
-def fetch_cooking_time(dir_string):
-    time_units = ['seconds','minutes','hours']
-    words = word_tokenize(dir_string)
-    for time_unit in time_units:
-        if time_unit in words:
-            scale = words[words.index(time_unit)-1]
-            if words[words.index(time_unit)-2] == 'to':
-                scale_2 = words[words.index(time_unit)-3]
-                return str(scale_2) + ' to ' + str(scale) + ' ' +time_unit
-            else:
-                return str(scale)+' '+ time_unit
 
 def genrate_output_steps(instructions_objects):
     for i in range(len(instructions_objects)):
         print ("step "+str(i+1))
-        if not instructions_objects[i]['ingredients']:
-            print ("ingredients: None")
-        else:
-            print ("ingredients: "+' '.join(instructions_objects[i]['ingredients']))
+        print ("ingredients: "+' '.join(instructions_objects[i]['ingredients']))
         all_tools = list(set(instructions_objects[i]["parsed_tools"] + instructions_objects[i]["inferred_tools"])) 
-        if not all_tools:
-            print ("tools: None")
-        else:
-            print ("tools: "+' '.join(all_tools))
+        print ("tools: "+' '.join(all_tools))
         all_methods = list(set(instructions_objects[i]['parsed_methods'] + instructions_objects[i]["inferred_methods"]))
-        if not all_methods:
-            print ("cooking methods: None")
-            print ("primary cooking methods: None")
-            print ("other cooking methods: None")
-        else:
-            print ("cooking methods: "+' '.join(all_methods))
-            print ('primary cooking methods: ' + ' '.join(instructions_objects[i]['primary_method']))
-            print ('other cooking methods: ' + ' '.join(instructions_objects[i]['other_method']))
-        if not instructions_objects[i]['cooking_time'][0]:
-            print ("cooking time: None" )
-        else:
-            print ("cooking time: " + ' '.join(instructions_objects[i]['cooking_time']) + '\n')
-
+        print ("cooking methods: "+' '.join(all_methods))
+        print ('primary cooking methods: ' + ' '.join(instructions_objects[i]['primary_method']))
+        print ('other cooking methods: ' + ' '.join(instructions_objects[i]['other_method']) + '\n')
 if __name__ == '__main__':
-    url = input("Enter a URL from AllRecipes.com, to transform: ")
+    url = input("Enter a URL from AllRecipes.com, to transform:")
     all_strings = fetch_page(url)
     ing_strings = all_strings[0]
     dir_strings = all_strings[1]
-    dir_strings  = sentence_tokenizer(dir_strings)
-
     title = all_strings[2]
-    ingredients_objects = find_ingredients_objects(ing_strings)
-    all_ingredients = full_ingredients_list(ingredients_objects)
-    all_tools = full_tools_list(dir_strings)
-    all_methods = full_methods_list(dir_strings, all_ingredients)
-    all_methods_class= find_primary_cooking_method(all_methods['parsed_methods']+all_methods['inferred_methods'])
-    instructions_objects = assemble_instruction_objects(dir_strings, all_ingredients)
-    genrate_output_steps(instructions_objects)
-    print("You can do several actions; press...")
-    print("[1] To view the title, original ingredients, and original instructions of the recipe.")
-    print("[2] To view our parsed representations of the ingredients and instructions of this recipe")
-    print("[3] To view our list of methods and tools, as well as our inferred main method for the recipe.")
-    print("[4] To view our [non-vegetarian to vegetarian] transform of this recipe.")
-    print("[5] To view our [vegetarian to non-vegetarian] transform of this recipe.")
-    print("[6] To view our [non-healthy to healthy] transform of this recipe.")
-    print("[7] To view our [healthy to non-healthy] transform of this recipe.")
-    print("[8] To view our [custom; South Asian] transform of this recipe.")
-    instruction = input("Enter a number corresponding to the instruction you would like: ")
-    if instruction == "1":
-        print_original_info(title, ing_strings, dir_strings)
-    elif instruction == "2":
-        print("Parsed ingredient representations:")
-        print(ingredients_objects)
-        print("Parsed instruction representations:")
-        print(instructions_objects)
-    elif instruction == "3":
-        print("List of tools:")
-        print(all_tools)
-        print("List of methods:")
-        print(all_methods)
-        print("Inferred main methods:")
-        print(all_methods_class)
-    elif instruction == "4":
-        print("Non-vegetarian to vegetarian transform:")
-        vege_instructions, vege_ingredients = non_vege_to_vege(ingredients_objects, instructions_objects)
-        print("New Ingredients:")
-        for vege_ingredient in vege_ingredients:
-            print(generate_ingredient_string(vege_ingredient))
-        print("New Instructions:")
-        generate_output_steps(vege_instructions)
-    elif instruction == "5":
-        print("Vegetarian to non-vegetarian transform:")
-        nonveg_instructions, nonveg_ingredients = vege_to_non_vege(ingredients_objects, instructions_objects)
-        print("New Ingredients:")
-        for nonveg_ingredient in nonveg_ingredients:
-            print(generate_ingredient_string(vege_ingredient))
-        print("New Instructions:")
-        generate_output_steps(nonveg_instructions)
-    elif instruction == "6":
-        print("Non-healthy to healthy transform:")
-        healthy_instructions, healthy_ingredients = non_heal_to_heal(ingredients_objects, instructions_objects)
-        print("New Ingredients:")
-        for healthy_ingredient in healthy_ingredients:
-            print(generate_ingredient_string(healthy_ingredient))
-        print("New Instructions:")
-        generate_output_steps(healthy_instructions)
-    elif instruction == "7":
-        print("Healthy to non-healthy transform:")
-        nonhealthy_instructions, nonhealthy_ingredients = heal_to_non_heal(ingredients_objects, instructions_objects)
-        print("New Ingredients:")
-        for nonhealthy_ingredient in nonhealthy_ingredients:
-            print(generate_ingredient_string(nonhealthy_ingredient))
-        print("New Instructions:")
-        generate_output_steps(nonhealthy_instructions)
-    elif instruction == "8":
-        print("8")
-
-    
-    '''
     print("Recipe title: " + title)
-    print("Finding ingredients objects:")    
+    print("Listing all the ingredients:")    
+    ingredients_objects = find_ingredients_objects(ing_strings)
     print(ingredients_objects)
-    
-    print (all_ingredients)
-    print("Finding all tools list:")
-    
+    all_ingredients = full_ingredients_list(ingredients_objects)
+    print("Listing all tools:")
+    all_tools = full_tools_list(dir_strings)
     print(all_tools)
-    print("Finding all methods list:")
+    print("Listing all methods:")
     all_methods = full_methods_list(dir_strings, all_ingredients)
     print(all_methods)
     all_methods_class= find_primary_cooking_method(all_methods['parsed_methods']+all_methods['inferred_methods'])
     print(all_methods_class)
-    print("Creating instruction object for each instruction:")
     instructions_objects = assemble_instruction_objects(dir_strings, all_ingredients)
-    
+    print ('Listing the cooking steps:')
+    print("Creating instruction object for each instruction:")    
+    genrate_output_steps(instructions_objects)
     transformed_instructions,transformed_ingredients = non_vege_to_vege(ingredients_objects,instructions_objects)
     for i in range(0, len(dir_strings)):
         print(dir_strings[i])
@@ -1173,8 +1044,12 @@ if __name__ == '__main__':
     #all_transformed_ingredients = full_ingredients_list(transformed_ingredients)
     #print(transformed_ingredients)
     #print(all_transformed_ingredients)
-    '''
 
+
+    
+    
+    
+    
     
     
     
