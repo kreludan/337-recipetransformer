@@ -1,0 +1,7 @@
+worked on:
+---step 1 scraping of webpage to get ingredients and instructions
+---did the parser for ingredient and instructions into our dictionary representation
+---made some fixes to edge cases for the parser (parts of speech fix, depluralizer, ensuring words weren't repeated, etc.)
+---did most of the custom transform to South Asian cuisine and (a little bit of) help w/ debugging to/from vegetarian
+---did the output generator to convert modified ingredient objects to our new ingredient strings
+---made the user input for url / instruction selection
