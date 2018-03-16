@@ -1,0 +1,5 @@
+For this project I 
+-helped test and improve the parser
+-debugged parser fields by adding some smaller cases 
+-added tool inference and some method inference
+-wrote most the italian transform 
