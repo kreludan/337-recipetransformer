@@ -1,0 +1,5 @@
+worked on:
+1. did the funciton to generate possible inferred methods based on combinations of tools
+2. tested and extended the original method parser to catch more noun verb cooking method
+3. wrote the vege-nonvege transformation 
+4. did the output instruction by step generator by combining the output from different parsers
