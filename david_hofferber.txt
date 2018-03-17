@@ -1,0 +1,8 @@
+worked on:
+- Extended/re-wrote the vege to non-vege transform Yixing initially made to be more in-depth and modify ingredient/instruction objects instead of pure list format
+- wrote all of, and debugged the majority of, the non-vege to vege, healthy to non-healthy, and non-healthy to healthy transforms
+- assisted with debugging the South Asian transform
+- Assisted with debugging parsing issues, especially things like edge cases that occurred due to NLTK being wonky
+- Did majority of transform testing for required transforms
+- Drew out and compiled the state architecture pictures and diagrams for presentation
+- Made the readme detailing Python version, installation / dependencies, etc 
